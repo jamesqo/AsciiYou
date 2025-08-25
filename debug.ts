@@ -144,6 +144,97 @@ function testCanvasDrawing(): void {
     }
 }
 
+function debugWebGPUBuffers(): void {
+    console.log("🔍 === WEBGPU BUFFER DEBUG ===");
+    if (window.webgpuApp) {
+        const app = window.webgpuApp;
+        
+        // Check uniform buffer
+        if (app.uniforms) {
+            console.log("Uniforms buffer:", app.uniforms);
+            console.log("Uniforms size:", app.uniforms.size);
+            console.log("Uniforms usage:", app.uniforms.usage);
+        }
+        
+        // Check if we have access to other buffers
+        console.log("Available buffers:", {
+            uniforms: !!app.uniforms,
+            // Add other buffers as they become available
+        });
+    }
+}
+
+function debugShaderResources(): void {
+    console.log("🔍 === SHADER RESOURCES DEBUG ===");
+    if (window.webgpuApp) {
+        const app = window.webgpuApp;
+        
+        // Check textures
+        console.log("Camera texture:", {
+            exists: !!app.camTex,
+            width: app.camTex?.width,
+            height: app.camTex?.height,
+            format: app.camTex?.format,
+            usage: app.camTex?.usage
+        });
+        
+        console.log("Atlas texture:", {
+            exists: !!app.atlasTex,
+            width: app.atlasTex?.width,
+            height: app.atlasTex?.height,
+            format: app.atlasTex?.format,
+            usage: app.atlasTex?.usage
+        });
+        
+        console.log("Output texture:", {
+            exists: !!app.outputTex,
+            width: app.outputTex?.width,
+            height: app.outputTex?.height,
+            format: app.outputTex?.format,
+            usage: app.outputTex?.usage
+        });
+    }
+}
+
+function testShaderCompilation(): void {
+    console.log("🔍 === SHADER COMPILATION TEST ===");
+    if (window.webgpuApp && window.webgpuApp.device) {
+        const device = window.webgpuApp.device;
+        
+        // Test compute shader
+        try {
+            const computeResponse = fetch('shaders/compute.wgsl');
+            computeResponse.then(response => response.text()).then(code => {
+                try {
+                    const module = device.createShaderModule({ code });
+                    console.log("✅ Compute shader compiled successfully");
+                    console.log("Code length:", code.length, "characters");
+                } catch (error) {
+                    console.error("❌ Compute shader compilation failed:", error);
+                }
+            });
+        } catch (error) {
+            console.error("❌ Failed to load compute shader:", error);
+        }
+        
+        // Test render shader
+        try {
+            const renderResponse = fetch('shaders/render.wgsl');
+            renderResponse.then(response => response.text()).then(code => {
+                try {
+                    const module = device.createShaderModule({ code });
+                    console.log("✅ Render shader compiled successfully");
+                    console.log("Code length:", code.length, "characters");
+                } catch (error) {
+                    console.error("❌ Render shader compilation failed:", error);
+                }
+            });
+        } catch (error) {
+            console.error("❌ Failed to load render shader:", error);
+        }
+    }
+}
+
 function fullDebug(): void {
     console.log("🔍 === FULL DEBUG ===");
     debugCanvas();
@@ -151,6 +242,41 @@ function fullDebug(): void {
     snapshotCanvas();
     debugRenderState();
     validateWebGPUPipeline();
+    debugWebGPUBuffers();
+    debugShaderResources();
+    testShaderCompilation();
+}
+
+function screenshotCanvas(): void {
+    console.log("📸 === CANVAS SCREENSHOT ===");
+    const canvas: HTMLCanvasElement | null = document.getElementById('gfx') as HTMLCanvasElement;
+    if (!canvas) {
+        console.log("❌ Canvas element not found");
+        return;
+    }
+    
+    // Convert to blob and POST to dev server to persist under screenshots/
+    try {
+        canvas.toBlob(async (blob) => {
+            if (!blob) {
+                console.log("❌ Failed to create PNG blob from canvas");
+                return;
+            }
+            try {
+                const res = await fetch('/__screenshot', { method: 'POST', body: blob });
+                if (!res.ok) {
+                    console.log("❌ Screenshot upload failed:", res.status);
+                } else {
+                    const name = await res.text();
+                    console.log(`✅ Screenshot saved as screenshots/${name}`);
+                }
+            } catch (err) {
+                console.log("❌ Screenshot upload error:", err);
+            }
+        }, 'image/png');
+    } catch (e) {
+        console.log("❌ toBlob error:", e);
+    }
 }
 
 // Set up keyboard shortcuts
@@ -166,6 +292,12 @@ function setupDebugShortcuts(): void {
             testCanvasDrawing();
         }
     });
+    
+    document.addEventListener('keydown', (e: KeyboardEvent) => {
+        if (e.key === 's') {
+            screenshotCanvas();
+        }
+    });
 }
 
 // Make functions globally available
@@ -176,7 +308,8 @@ window.debugApp = {
     debugRenderState,
     validateWebGPUPipeline,
     testCanvasDrawing,
-    fullDebug
+    fullDebug,
+    screenshotCanvas
 };
 
 // Auto-setup shortcuts when DOM is ready

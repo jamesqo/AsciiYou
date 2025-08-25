@@ -43,6 +43,7 @@ interface DebugApp {
     validateWebGPUPipeline: () => void;
     testCanvasDrawing: () => void;
     fullDebug: () => void;
+    screenshotCanvas: () => void;
 }
 
 // Extend Navigator interface with WebGPU support

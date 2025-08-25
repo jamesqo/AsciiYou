@@ -242,23 +242,30 @@ async function initializeApp(): Promise<void> {
         // Creating bind groups...
         console.log("🔧 Creating bind groups...");
         try {
+            // Create sampler for compute shader
+            const computeSampler = window.webgpuApp.device.createSampler({ minFilter: 'linear', magFilter: 'linear' });
+            
             window.webgpuApp.computeBindGroup = window.webgpuApp.device.createBindGroup({
                 layout: window.webgpuApp.computePipeline.getBindGroupLayout(0),
                 entries: [
-                    { binding: 0, resource: { buffer: uniforms } },
-                    { binding: 1, resource: camTex.createView() },
-                    { binding: 2, resource: atlasTex.createView() },
-                    { binding: 3, resource: outputTex.createView() }
+                    { binding: 0, resource: computeSampler },                    // Binding 0: Sampler
+                    { binding: 1, resource: camTex.createView() },               // Binding 1: Camera texture
+                    { binding: 2, resource: { buffer: idxBuffer } },             // Binding 2: Index buffer
+                    { binding: 3, resource: { buffer: uniforms } }               // Binding 3: Uniforms
                 ]
             });
             console.log("✅ Compute bind group created");
 
+            // Create sampler for render shader
+            const renderSampler = window.webgpuApp.device.createSampler({ minFilter: 'linear', magFilter: 'linear' });
+            
             window.webgpuApp.renderBindGroup = window.webgpuApp.device.createBindGroup({
                 layout: window.webgpuApp.renderPipeline.getBindGroupLayout(0),
                 entries: [
-                    { binding: 0, resource: { buffer: uniforms } },
-                    { binding: 1, resource: outputTex.createView() },
-                    { binding: 2, resource: atlasTex.createView() }
+                    { binding: 0, resource: { buffer: idxBuffer } },             // Binding 0: Index buffer
+                    { binding: 1, resource: atlasTex.createView() },             // Binding 1: Atlas texture
+                    { binding: 2, resource: renderSampler },                     // Binding 2: Sampler
+                    { binding: 3, resource: { buffer: uniforms } }               // Binding 3: Uniforms
                 ]
             });
             console.log("✅ Render bind group created");

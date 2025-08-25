@@ -44,5 +44,6 @@ fn fs_main(in: VSOut) -> @location(0) vec4<f32> {
   let uv = tileOrigin + frac * tileSize;
 
   let g = textureSample(glyphAtlas, atlasSamp, uv).r; // glyph luminance
-  return vec4<f32>(g, g, g, 1.0);
+  // return vec4<f32>(g, g, g, 1.0);
+  return vec4<f32>(1.0, 0.0, 0.0, 1.0);
 }

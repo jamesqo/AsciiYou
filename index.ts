@@ -220,11 +220,11 @@ async function initializeApp(): Promise<void> {
                 layout: 'auto',
                 vertex: {
                     module: renMod,
-                    entryPoint: 'main'
+                    entryPoint: 'vs_main'
                 },
                 fragment: {
                     module: renMod,
-                    entryPoint: 'main',
+                    entryPoint: 'fs_main',
                     targets: [{
                         format: format
                     }]

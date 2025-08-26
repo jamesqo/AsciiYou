@@ -8,7 +8,8 @@ function debugPlugin(): Plugin {
   return {
     name: 'debug-writer',
     configureServer(server) {
-      server.middlewares.use('/saveDebugInfo', (req, res) => {
+      // Save PNG screenshot (raw blob)
+      server.middlewares.use('/debug/save-screenshot', (req, res) => {
         if (req.method !== 'POST') {
           res.statusCode = 405
           res.end('Method Not Allowed')
@@ -19,36 +20,44 @@ function debugPlugin(): Plugin {
         req.on('data', (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)))
         req.on('end', () => {
           try {
-            const saveType = (req.headers['x-save-type'] as string | undefined)?.toLowerCase()
-
-            let outDir: string,
-                baseName: string,
-                fileContents: string | Buffer
-
-            if (saveType === 'screenshot') {
-              // Raw binary PNG blob expected
-              outDir = path.resolve(process.cwd(), 'debug', 'screenshots')
-              baseName = `screenshot-${Date.now()}`
-              fileContents = Buffer.concat(chunks)
-            } else if (saveType === 'ascii') {
-              // Plain UTF-8 text body
-              outDir = path.resolve(process.cwd(), 'debug', 'ascii')
-              baseName = `ascii-${Date.now()}.txt`
-              fileContents = Buffer.concat(chunks).toString('utf8')
-            } else {
-              throw new Error(`Invalid save type: ${saveType}`)
-            }
-
+            const outDir = path.resolve(process.cwd(), 'debug', 'screenshots')
+            const baseName = `screenshot-${Date.now()}`
             fs.mkdirSync(outDir, { recursive: true })
             const outPath = path.join(outDir, baseName)
-            fs.writeFileSync(outPath, fileContents)
-
+            fs.writeFileSync(outPath, Buffer.concat(chunks))
             res.statusCode = 200
             res.setHeader('content-type', 'application/json')
             res.end(JSON.stringify({ file: outPath }))
           } catch (e) {
             res.statusCode = 500
-            res.end('Failed to save')
+            res.end('Failed to save screenshot')
+          }
+        })
+      })
+
+      // Save ASCII mask (plain text)
+      server.middlewares.use('/debug/save-ascii', (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405
+          res.end('Method Not Allowed')
+          return
+        }
+
+        const chunks: Buffer[] = []
+        req.on('data', (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)))
+        req.on('end', () => {
+          try {
+            const outDir = path.resolve(process.cwd(), 'debug', 'ascii')
+            const baseName = `ascii-${Date.now()}.txt`
+            fs.mkdirSync(outDir, { recursive: true })
+            const outPath = path.join(outDir, baseName)
+            fs.writeFileSync(outPath, Buffer.concat(chunks))
+            res.statusCode = 200
+            res.setHeader('content-type', 'application/json')
+            res.end(JSON.stringify({ file: outPath }))
+          } catch (e) {
+            res.statusCode = 500
+            res.end('Failed to save ASCII mask')
           }
         })
       })

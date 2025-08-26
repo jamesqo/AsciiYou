@@ -266,10 +266,10 @@ function screenshotCanvas(): void {
         // 0) Dump current ASCII state
         const ascii = await window.webGPUApp?.dumpCurrentASCII();
 
-        // 1) Save screenshot as raw blob with header
-        const res1 = await fetch('/saveDebugInfo', { method: 'POST', headers: { 'x-save-type': 'screenshot' }, body: blob });
-        // 2) Save ASCII as plain text with header
-        const res2 = await fetch('/saveDebugInfo', { method: 'POST', headers: { 'x-save-type': 'ascii' }, body: (ascii ?? '') });
+        // 1) Save screenshot as raw blob
+        const res1 = await fetch('/debug/save-screenshot', { method: 'POST', body: blob });
+        // 2) Save ASCII as plain text
+        const res2 = await fetch('/debug/save-ascii', { method: 'POST', body: (ascii ?? '') });
 
         if (!res1.ok || !res2.ok) {
             console.log("❌ saveDebugInfo failed:", res1.status, res2.status);

@@ -17,20 +17,20 @@ function debugCanvas(): void {
 
 function debugTextures(): void {
     console.log("🔍 === TEXTURE DEBUG ===");
-    if (window.webgpuApp && window.webgpuApp.device) {
-        console.log("Camera texture:", window.webgpuApp.camTex);
-        console.log("Atlas texture:", window.webgpuApp.atlasTex);
-        console.log("Output texture:", window.webgpuApp.outputTex);
+    if (window.webGPUApp && window.webGPUApp.device) {
+        console.log("Camera texture:", window.webGPUApp.camTex);
+        console.log("Atlas texture:", window.webGPUApp.atlasTex);
+        console.log("Output texture:", window.webGPUApp.outputTex);
         
         // Check if textures have valid dimensions
-        if (window.webgpuApp.camTex) {
-            console.log("Camera texture dimensions:", window.webgpuApp.camTex.width, "x", window.webgpuApp.camTex.height);
+        if (window.webGPUApp.camTex) {
+            console.log("Camera texture dimensions:", window.webGPUApp.camTex.width, "x", window.webGPUApp.camTex.height);
         }
-        if (window.webgpuApp.atlasTex) {
-            console.log("Atlas texture dimensions:", window.webgpuApp.atlasTex.width, "x", window.webgpuApp.atlasTex.height);
+        if (window.webGPUApp.atlasTex) {
+            console.log("Atlas texture dimensions:", window.webGPUApp.atlasTex.width, "x", window.webGPUApp.atlasTex.height);
         }
-        if (window.webgpuApp.outputTex) {
-            console.log("Output texture dimensions:", window.webgpuApp.outputTex.width, "x", window.webgpuApp.outputTex.height);
+        if (window.webGPUApp.outputTex) {
+            console.log("Output texture dimensions:", window.webGPUApp.outputTex.width, "x", window.webGPUApp.outputTex.height);
         }
     }
 }
@@ -73,19 +73,19 @@ function snapshotCanvas(): void {
 
 function debugRenderState(): void {
     console.log("🔍 === RENDER STATE DEBUG ===");
-    if (window.webgpuApp) {
-        console.log("Current uniforms:", window.webgpuApp.uniforms);
-        console.log("Current dimensions:", window.webgpuApp.outW, "x", window.webgpuApp.outH);
-        console.log("Current contrast:", window.webgpuApp.contrast);
-        console.log("Current edge bias:", window.webgpuApp.edgeBias);
-        console.log("Current invert:", window.webgpuApp.invert);
+    if (window.webGPUApp) {
+        console.log("Current uniforms:", window.webGPUApp.uniforms);
+        console.log("Current dimensions:", window.webGPUApp.outW, "x", window.webGPUApp.outH);
+        console.log("Current contrast:", window.webGPUApp.contrast);
+        console.log("Current edge bias:", window.webGPUApp.edgeBias);
+        console.log("Current invert:", window.webGPUApp.invert);
     }
 }
 
 function validateWebGPUPipeline(): void {
     console.log("🔍 === WEBGPU PIPELINE VALIDATION ===");
-    if (window.webgpuApp) {
-        const app: WebGPUApp = window.webgpuApp;
+    if (window.webGPUApp) {
+        const app: WebGPUApp = window.webGPUApp;
         console.log("Device:", app.device);
         console.log("Compute pipeline:", app.computePipeline);
         console.log("Render pipeline:", app.renderPipeline);
@@ -146,8 +146,8 @@ function testCanvasDrawing(): void {
 
 function debugWebGPUBuffers(): void {
     console.log("🔍 === WEBGPU BUFFER DEBUG ===");
-    if (window.webgpuApp) {
-        const app = window.webgpuApp;
+    if (window.webGPUApp) {
+        const app = window.webGPUApp;
         
         // Check uniform buffer
         if (app.uniforms) {
@@ -166,8 +166,8 @@ function debugWebGPUBuffers(): void {
 
 function debugShaderResources(): void {
     console.log("🔍 === SHADER RESOURCES DEBUG ===");
-    if (window.webgpuApp) {
-        const app = window.webgpuApp;
+    if (window.webGPUApp) {
+        const app = window.webGPUApp;
         
         // Check textures
         console.log("Camera texture:", {
@@ -198,8 +198,8 @@ function debugShaderResources(): void {
 
 function testShaderCompilation(): void {
     console.log("🔍 === SHADER COMPILATION TEST ===");
-    if (window.webgpuApp && window.webgpuApp.device) {
-        const device = window.webgpuApp.device;
+    if (window.webGPUApp && window.webGPUApp.device) {
+        const device = window.webGPUApp.device;
         
         // Test compute shader
         try {
@@ -301,7 +301,7 @@ function setupDebugShortcuts(): void {
 }
 
 // Make functions globally available
-window.debugApp = {
+window.debugTools = {
     debugCanvas,
     debugTextures,
     snapshotCanvas,
@@ -320,4 +320,4 @@ if (document.readyState === 'loading') {
 }
 
 console.log("🔧 Debug functions loaded. Press 'D' for debug, 'T' for test drawing");
-console.log("🔧 Debug functions also available via window.debugApp");
+console.log("🔧 Debug functions also available via window.debugTools");

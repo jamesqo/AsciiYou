@@ -335,7 +335,6 @@
             <li><strong>H:</strong> Show/hide this help</li>
             <li><strong>W:</strong> Toggle webcam visibility</li>
             <li><strong>Space:</strong> Pause/resume</li>
-            <li><strong>R:</strong> Reset to default settings</li>
         </ul>
         
         <p><strong>Performance Tips:</strong><br>
@@ -389,10 +388,6 @@
                     e.preventDefault();
                     // Toggle pause (implement in main script)
                     break;
-                case 'r':
-                    e.preventDefault();
-                    resetControls();
-                    break;
                 case 'w':
                     e.preventDefault();
                     toggleWebcam();
@@ -406,21 +401,6 @@
 
         function hideHelp() {
             document.getElementById('help').classList.add('hidden');
-        }
-
-        function resetControls() {
-            controls.width.value = 160;
-            controls.height.value = 90;
-            controls.contrast.value = 1.1;
-            controls.edgeBias.value = 0.35;
-            controls.invert.checked = false;
-            controls.atlas.value = 'dense';
-            
-            // Update displays
-            values.width.textContent = '160';
-            values.height.textContent = '90';
-            values.contrast.textContent = '1.1';
-            values.edgeBias.textContent = '0.35';
         }
 
         function updateStatus(message) {

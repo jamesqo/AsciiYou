@@ -1,0 +1,263 @@
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Courier New', monospace;
+    background: #1a1a1a;
+    color: #ffffff;
+    overflow: hidden;
+    user-select: none;
+}
+
+.header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    padding: 15px 20px;
+    z-index: 1000;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #333;
+}
+
+.title {
+    font-size: 24px;
+    font-weight: bold;
+    color: #00ff88;
+}
+
+.controls {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.control-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.control-group label {
+    font-size: 12px;
+    color: #ccc;
+    min-width: 60px;
+}
+
+.control-group input[type="range"] {
+    width: 100px;
+    height: 4px;
+    background: #333;
+    border-radius: 2px;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.control-group input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    background: #00ff88;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.control-group input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #00ff88;
+}
+
+.control-group select {
+    background: #333;
+    color: #fff;
+    border: 1px solid #555;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 12px;
+}
+
+/* Webcam preview styles (migrated from inline) */
+#cam {
+    position: fixed;
+    top: 100px;
+    right: 20px;
+    width: 320px;
+    height: 240px;
+    border: 2px solid #00ff88;
+    border-radius: 8px;
+    z-index: 100;
+    box-shadow: 0 4px 20px rgba(0, 255, 136, 0.3);
+    transform: scaleX(-1);
+    transform-origin: center;
+}
+
+/* Help lists (migrated from inline) */
+.help-list {
+    margin-left: 20px;
+    margin-bottom: 15px;
+}
+
+.status {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-size: 12px;
+    color: #ccc;
+    border: 1px solid #333;
+}
+
+.canvas-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #000;
+}
+
+#gfx {
+    max-width: 100vw;
+    max-height: 100vh;
+    object-fit: contain;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.error {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 0, 0, 0.9);
+    color: white;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    max-width: 400px;
+}
+
+.loading {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #00ff88;
+    font-size: 18px;
+    text-align: center;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #333;
+    border-top: 4px solid #00ff88;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 15px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.help {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.95);
+    color: #fff;
+    padding: 30px;
+    border-radius: 12px;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+    border: 1px solid #333;
+    z-index: 2000;
+}
+
+.help h2 {
+    color: #00ff88;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.help p {
+    margin-bottom: 15px;
+    line-height: 1.5;
+}
+
+.help .close {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+}
+
+.help .close:hover {
+    color: #00ff88;
+}
+
+.help-button {
+    background: #333;
+    color: #fff;
+    border: 1px solid #555;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+}
+
+.help-button:hover {
+    background: #444;
+}
+
+.help-button[onclick*="toggleWebcam"] {
+    background: #00ff88;
+    color: #000;
+}
+
+.help-button[onclick*="toggleWebcam"]:hover {
+    background: #00cc6a;
+}
+
+@media (max-width: 768px) {
+    .header {
+        flex-direction: column;
+        gap: 15px;
+        padding: 10px;
+    }
+    
+    .controls {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .control-group {
+        min-width: 120px;
+    }
+}

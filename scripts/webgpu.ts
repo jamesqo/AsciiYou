@@ -43,7 +43,7 @@ export class WebGPUApp {
         });
     }
 
-    private captureStackTrace(depth = 1): string[] {
+    private captureStackTrace(depth = 1): string {
         const err = new Error();
         const stack = err.stack?.split("\n") ?? [];
         return stack.slice(depth).join("\n");
@@ -258,7 +258,7 @@ export class WebGPUApp {
         });
     }
 
-    doComputePass(encoder: GPUCommandEncoder): void {
+    private doComputePass(encoder: GPUCommandEncoder): void {
         const pass = encoder.beginComputePass();
         pass.label = 'pass/compute';
         pass.setPipeline(this.computePipeline);
@@ -267,7 +267,7 @@ export class WebGPUApp {
         pass.end();
     }
 
-    doRenderPass(encoder: GPUCommandEncoder, view: GPUTextureView): void {
+    private doRenderPass(encoder: GPUCommandEncoder, view: GPUTextureView): void {
         const pass = encoder.beginRenderPass({
             colorAttachments: [{ view, clearValue: { r: 0, g: 0, b: 0, a: 1 }, loadOp: 'clear', storeOp: 'store' }]
         });

@@ -17,9 +17,9 @@
     "types": ["@webgpu/types"]
   },
   "include": [
-    "*.ts",
-    "*.tsx",
-    "*.d.ts"
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.d.ts"
   ],
   "exclude": [
     "venv"

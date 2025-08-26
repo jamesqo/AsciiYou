@@ -1,5 +1,7 @@
 // Use global WebGPUApp and AppControls interfaces from types.d.ts
 
+import { RAMP_DENSE, RAMP_BLOCKS } from './constants';
+
 export class UserSettings {
     width: number = 160;
     height: number = 90;
@@ -34,7 +36,8 @@ export class WebGPUApp {
     private format!: GPUTextureFormat;
     private video!: HTMLVideoElement;
 
-    // Debug helpers
+    // #region Debug helpers
+
     private setupErrorHandlers(): void {
         this.device.onuncapturederror = (e: GPUUncapturedErrorEvent) => {
             console.error('🔴 WebGPU uncaptured error:', e.error);
@@ -63,6 +66,54 @@ export class WebGPUApp {
         }
         return result;
     }
+
+    public async dumpIndexBuffer(): Promise<Uint32Array> {
+        const numCells = this.settings.width * this.settings.height;
+        const byteSize = numCells * 4;
+
+        // Create a staging buffer to copy the index buffer to, then
+        // copy data out of the staging buffer into a Uint32Array.
+        // The index buffer is used as the GPU as STORAGE during rendering--
+        // giving it MAP_READ usage would slow things down, ie. by placing
+        // it in CPU-mappable memory.
+        const staging = this.device.createBuffer({
+            size: byteSize,
+            usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
+        });
+
+        // Copy from index buffer -> staging buffer
+        const encoder = this.device.createCommandEncoder();
+        encoder.copyBufferToBuffer(this.idxBuffer, 0, staging, 0, byteSize);
+        this.device.queue.submit([encoder.finish()]);
+
+        // Copy from staging buffer -> Uint32Array copy
+        await staging.mapAsync(GPUMapMode.READ);
+        const mapped = staging.getMappedRange();
+        const indices = new Uint32Array(mapped.slice(0)); // slice(0) copies the ArrayBuffer
+
+        // Free up resources from the staging buffer
+        staging.unmap();
+        staging.destroy();
+
+        return indices;
+    }
+
+    public async dumpCurrentASCII(): Promise<string> {
+        const indices = Array.from(await this.dumpIndexBuffer());
+        const chars = indices.map(i => RAMP_DENSE[i]);
+        const cols = this.settings.width;
+        const rows = this.settings.height;
+        let out = '';
+        for (let r = 0; r < rows; r++) {
+            const start = r * cols;
+            const end = start + cols;
+            out += chars.slice(start, end).join('');
+            if (r < rows - 1) out += '\n';
+        }
+        return out;
+    }
+
+    // #endregion
 
     private constructor() {}
 
@@ -103,7 +154,7 @@ export class WebGPUApp {
         // Shared buffer for compute (write) and render (read)
         return this.device.createBuffer({
             size: numCells * 4,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC
         });
     }
 
@@ -115,8 +166,6 @@ export class WebGPUApp {
     }
 
     private async loadAtlasBitmap(atlasType: string): Promise<{ bitmap: ImageBitmap; cols: number; rows: number; cellPx: number; }> {
-        const RAMP_DENSE: string = " .'`^\",:;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$";
-        const RAMP_BLOCKS: string = " ░▒▓█";
         const cols = 16;
         const cellPx = 32;
         let path = 'assets/dense_atlas.png';

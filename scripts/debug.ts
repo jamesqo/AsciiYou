@@ -257,28 +257,28 @@ function screenshotCanvas(): void {
         return;
     }
     
-    // Convert to blob and POST to dev server to persist under screenshots/
-    try {
-        canvas.toBlob(async (blob) => {
-            if (!blob) {
-                console.log("❌ Failed to create PNG blob from canvas");
-                return;
-            }
-            try {
-                const res = await fetch('/__screenshot', { method: 'POST', body: blob });
-                if (!res.ok) {
-                    console.log("❌ Screenshot upload failed:", res.status);
-                } else {
-                    const name = await res.text();
-                    console.log(`✅ Screenshot saved as screenshots/${name}`);
-                }
-            } catch (err) {
-                console.log("❌ Screenshot upload error:", err);
-            }
-        }, 'image/png');
-    } catch (e) {
-        console.log("❌ toBlob error:", e);
-    }
+    // Convert to PNG + ASCII and POST JSON to dev server to persist under debug/
+    canvas.toBlob(async (blob) => {
+        if (!blob) {
+            console.log("❌ Failed to create PNG blob from canvas");
+            return;
+        }
+        // 0) Dump current ASCII state
+        const ascii = await window.webGPUApp?.dumpCurrentASCII();
+
+        // 1) Save screenshot as raw blob with header
+        const res1 = await fetch('/saveDebugInfo', { method: 'POST', headers: { 'x-save-type': 'screenshot' }, body: blob });
+        // 2) Save ASCII as plain text with header
+        const res2 = await fetch('/saveDebugInfo', { method: 'POST', headers: { 'x-save-type': 'ascii' }, body: (ascii ?? '') });
+
+        if (!res1.ok || !res2.ok) {
+            console.log("❌ saveDebugInfo failed:", res1.status, res2.status);
+        } else {
+            const json1 = await res1.json();
+            const json2 = await res2.json();
+            console.log("✅ Saved:", json1.file, json2.file);
+        }
+    }, 'image/png');
 }
 
 // Set up keyboard shortcuts

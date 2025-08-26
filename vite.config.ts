@@ -1,13 +1,14 @@
 import { defineConfig, type Plugin } from 'vite'
 import fs from 'fs'
 import path from 'path'
+import assert from 'assert'
 
 // Dev-only plugin to save canvas screenshots posted from the client
-function screenshotPlugin(): Plugin {
+function debugPlugin(): Plugin {
   return {
-    name: 'screenshot-writer',
+    name: 'debug-writer',
     configureServer(server) {
-      server.middlewares.use('/__screenshot', (req, res) => {
+      server.middlewares.use('/saveDebugInfo', (req, res) => {
         if (req.method !== 'POST') {
           res.statusCode = 405
           res.end('Method Not Allowed')
@@ -18,17 +19,36 @@ function screenshotPlugin(): Plugin {
         req.on('data', (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)))
         req.on('end', () => {
           try {
-            const buffer = Buffer.concat(chunks)
-            const outDir = path.resolve(process.cwd(), 'debug', 'screenshots')
+            const saveType = (req.headers['x-save-type'] as string | undefined)?.toLowerCase()
+
+            let outDir: string,
+                baseName: string,
+                fileContents: string | Buffer
+
+            if (saveType === 'screenshot') {
+              // Raw binary PNG blob expected
+              outDir = path.resolve(process.cwd(), 'debug', 'screenshots')
+              baseName = `screenshot-${Date.now()}`
+              fileContents = Buffer.concat(chunks)
+            } else if (saveType === 'ascii') {
+              // Plain UTF-8 text body
+              outDir = path.resolve(process.cwd(), 'debug', 'ascii')
+              baseName = `ascii-${Date.now()}.txt`
+              fileContents = Buffer.concat(chunks).toString('utf8')
+            } else {
+              throw new Error(`Invalid save type: ${saveType}`)
+            }
+
             fs.mkdirSync(outDir, { recursive: true })
-            const filename = `screenshot-${Date.now()}.png`
-            const outPath = path.join(outDir, filename)
-            fs.writeFileSync(outPath, buffer)
+            const outPath = path.join(outDir, baseName)
+            fs.writeFileSync(outPath, fileContents)
+
             res.statusCode = 200
-            res.end(filename)
+            res.setHeader('content-type', 'application/json')
+            res.end(JSON.stringify({ file: outPath }))
           } catch (e) {
             res.statusCode = 500
-            res.end('Failed to write screenshot')
+            res.end('Failed to save')
           }
         })
       })
@@ -41,7 +61,7 @@ export default defineConfig({
     port: 8000,
     open: true,
   },
-  plugins: [screenshotPlugin()],
+  plugins: [debugPlugin()],
   build: {
     target: 'esnext',
     rollupOptions: {

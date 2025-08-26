@@ -1,7 +1,6 @@
 import { defineConfig, type Plugin } from 'vite'
 import fs from 'fs'
 import path from 'path'
-import assert from 'assert'
 
 // Dev-only plugin to save canvas screenshots posted from the client
 function debugPlugin(): Plugin {

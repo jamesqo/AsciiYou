@@ -61,44 +61,44 @@ function setupControlListeners(): void {
     });
 
     // Update WebGPU uniforms when controls change
-    controls.width.addEventListener('change', () => {
+    controls.width.addEventListener('change', async () => {
         if (window.webGPUApp) {
             window.webGPUApp.settings.width = parseInt(controls.width.value);
-            window.webGPUApp.updateUniforms();
+            await window.webGPUApp.updateUniforms();
         }
     });
 
-    controls.height.addEventListener('change', () => {
+    controls.height.addEventListener('change', async () => {
         if (window.webGPUApp) {
             window.webGPUApp.settings.height = parseInt(controls.height.value);
-            window.webGPUApp.updateUniforms();
+            await window.webGPUApp.updateUniforms();
         }
     });
 
-    controls.contrast.addEventListener('change', () => {
+    controls.contrast.addEventListener('change', async () => {
         if (window.webGPUApp) {
             window.webGPUApp.settings.contrast = parseFloat(controls.contrast.value);
-            window.webGPUApp.updateUniforms();
+            await window.webGPUApp.updateUniforms();
         }
     });
 
-    controls.edgeBias.addEventListener('change', () => {
+    controls.edgeBias.addEventListener('change', async () => {
         if (window.webGPUApp) {
             window.webGPUApp.settings.edgeBias = parseFloat(controls.edgeBias.value);
-            window.webGPUApp.updateUniforms();
+            await window.webGPUApp.updateUniforms();
         }
     });
 
-    controls.invert.addEventListener('change', () => {
+    controls.invert.addEventListener('change', async () => {
         if (window.webGPUApp) {
             window.webGPUApp.settings.invert = controls.invert.checked ? 1.0 : 0.0;
-            window.webGPUApp.updateUniforms();
+            await window.webGPUApp.updateUniforms();
         }
     });
 
-    controls.atlas.addEventListener('change', () => {
+    controls.atlas.addEventListener('change', async () => {
         if (window.webGPUApp) {
-            window.webGPUApp.switchAtlas(controls.atlas.value);
+            await window.webGPUApp.switchAtlas(controls.atlas.value);
         }
     });
 }

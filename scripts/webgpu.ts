@@ -31,7 +31,7 @@ export class WebGPUApp {
 
     computeBindGroup!: GPUBindGroup;
     renderBindGroup!: GPUBindGroup;
-    private idxBuffer!: GPUBuffer;
+    private indexBuffer!: GPUBuffer;
 
     private canvas!: HTMLCanvasElement;
     private ctx!: GPUCanvasContext;
@@ -85,7 +85,7 @@ export class WebGPUApp {
 
         // Copy from index buffer -> staging buffer
         const encoder = this.device.createCommandEncoder();
-        encoder.copyBufferToBuffer(this.idxBuffer, 0, staging, 0, byteSize);
+        encoder.copyBufferToBuffer(this.indexBuffer, 0, staging, 0, byteSize);
         this.device.queue.submit([encoder.finish()]);
 
         // Copy from staging buffer -> Uint32Array copy
@@ -140,7 +140,7 @@ export class WebGPUApp {
         app.camTex = await app.createCamTexture();
         app.outputTex = await app.createOutputTexture();
         app.uniforms = await app.createUniforms();
-        app.idxBuffer = app.createIndexBuffer();
+        app.indexBuffer = app.createIndexBuffer();
 
         // Pipelines & bind groups
         app.computePipeline = await app.createComputePipeline();
@@ -158,6 +158,20 @@ export class WebGPUApp {
             size: numCells * 4,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC
         });
+    }
+
+    private async resizeIndexBuffer(): Promise<void> {
+        if (!this.indexBuffer) {
+            throw new Error('Index buffer not initialized');
+        }
+
+        // It is not safe to destroy the index buffer while it is in use,
+        // so recreate the bind groups first (which reference it) before
+        // destroying the old one.
+        const old = this.indexBuffer;
+        this.indexBuffer = this.createIndexBuffer();
+        await this.recreateBindGroups();
+        old.destroy();
     }
 
     private configureCanvas(canvas: HTMLCanvasElement): void {
@@ -301,7 +315,7 @@ export class WebGPUApp {
             entries: [
                 { binding: 0, resource: computeSampler },
                 { binding: 1, resource: this.camTex.createView() },
-                { binding: 2, resource: { buffer: this.idxBuffer } },
+                { binding: 2, resource: { buffer: this.indexBuffer } },
                 { binding: 3, resource: { buffer: this.uniforms } }
             ]
         });
@@ -312,12 +326,22 @@ export class WebGPUApp {
         return this.device.createBindGroup({
             layout: this.renderPipeline.getBindGroupLayout(0),
             entries: [
-                { binding: 0, resource: { buffer: this.idxBuffer } },
+                { binding: 0, resource: { buffer: this.indexBuffer } },
                 { binding: 1, resource: this.atlasTex.createView() },
                 { binding: 2, resource: renderSampler },
                 { binding: 3, resource: { buffer: this.uniforms } }
             ]
         });
+    }
+
+    // Re-creates the bind groups when fields that they reference change.
+    private async recreateBindGroups(): Promise<void> {
+        // NOTE: It is not necessary to destroy the old bind groups--
+        // they are immutable descriptor objects with no explicit lifetime API,
+        // and they are automatically garbage collected.
+
+        this.computeBindGroup = await this.createComputeBindGroup();
+        this.renderBindGroup = await this.createRenderBindGroup();
     }
 
     private doComputePass(encoder: GPUCommandEncoder): void {
@@ -367,7 +391,7 @@ export class WebGPUApp {
         requestAnimationFrame(frame);
     }
 
-    updateUniforms(): void {
+    async updateUniforms(): Promise<void> {
         const data = new Float32Array([
             this.settings.width,
             this.settings.height,
@@ -377,8 +401,8 @@ export class WebGPUApp {
             this.cols, this.rows, this.cellPx, this.atlasTex.width, this.atlasTex.height
         ]);
         this.device.queue.writeBuffer(this.uniforms, 0, data as BufferSource);
-        // Re-allocate index buffer, which depends on the width and height
-        this.idxBuffer = this.createIndexBuffer();
+        // Re-allocate index buffer, which depends on the width and height set by the user
+        await this.resizeIndexBuffer();
     }
 
     async switchAtlas(atlasType: string): Promise<void> {
@@ -390,6 +414,6 @@ export class WebGPUApp {
         );
         this.cols = cols;
         this.rows = rows;
-        this.updateUniforms();
+        await this.updateUniforms();
     }
 }

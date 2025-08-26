@@ -19,7 +19,7 @@ function screenshotPlugin(): Plugin {
         req.on('end', () => {
           try {
             const buffer = Buffer.concat(chunks)
-            const outDir = path.resolve(process.cwd(), 'screenshots')
+            const outDir = path.resolve(process.cwd(), 'debug', 'screenshots')
             fs.mkdirSync(outDir, { recursive: true })
             const filename = `screenshot-${Date.now()}.png`
             const outPath = path.join(outDir, filename)

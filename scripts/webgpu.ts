@@ -27,6 +27,7 @@ export class WebGPUApp {
 
     computeBindGroup!: GPUBindGroup;
     renderBindGroup!: GPUBindGroup;
+    private idxBuffer!: GPUBuffer;
 
     private canvas!: HTMLCanvasElement;
     private ctx!: GPUCanvasContext;
@@ -86,6 +87,7 @@ export class WebGPUApp {
         app.camTex = await app.createCamTexture();
         app.outputTex = await app.createOutputTexture();
         app.uniforms = await app.createUniforms();
+        app.idxBuffer = app.createIndexBuffer();
 
         // Pipelines & bind groups
         app.computePipeline = await app.createComputePipeline();
@@ -94,6 +96,15 @@ export class WebGPUApp {
         app.renderBindGroup = await app.createRenderBindGroup();
 
         return app;
+    }
+
+    private createIndexBuffer(): GPUBuffer {
+        const numCells = this.settings.width * this.settings.height;
+        // Shared buffer for compute (write) and render (read)
+        return this.device.createBuffer({
+            size: numCells * 4,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+        });
     }
 
     private configureCanvas(canvas: HTMLCanvasElement): void {
@@ -237,7 +248,7 @@ export class WebGPUApp {
             entries: [
                 { binding: 0, resource: computeSampler },
                 { binding: 1, resource: this.camTex.createView() },
-                { binding: 2, resource: { buffer: this.device.createBuffer({ size: this.settings.width * this.settings.height * 4, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST }) } },
+                { binding: 2, resource: { buffer: this.idxBuffer } },
                 { binding: 3, resource: { buffer: this.uniforms } }
             ]
         });
@@ -245,12 +256,10 @@ export class WebGPUApp {
 
     private async createRenderBindGroup(): Promise<GPUBindGroup> {
         const renderSampler = this.device.createSampler({ minFilter: 'linear', magFilter: 'linear' });
-        // Recreate index buffer for render bind group; store once if needed
-        const idxBuffer: GPUBuffer = this.device.createBuffer({ size: this.settings.width * this.settings.height * 4, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
         return this.device.createBindGroup({
             layout: this.renderPipeline.getBindGroupLayout(0),
             entries: [
-                { binding: 0, resource: { buffer: idxBuffer } },
+                { binding: 0, resource: { buffer: this.idxBuffer } },
                 { binding: 1, resource: this.atlasTex.createView() },
                 { binding: 2, resource: renderSampler },
                 { binding: 3, resource: { buffer: this.uniforms } }
@@ -315,6 +324,8 @@ export class WebGPUApp {
             this.cols, this.rows, this.cellPx, this.atlasTex.width, this.atlasTex.height
         ]);
         this.device.queue.writeBuffer(this.uniforms, 0, data as BufferSource);
+        // Re-allocate index buffer, which depends on the width and height
+        this.idxBuffer = this.createIndexBuffer();
     }
 
     async switchAtlas(atlasType: string): Promise<void> {

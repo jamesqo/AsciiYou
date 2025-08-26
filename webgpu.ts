@@ -57,8 +57,7 @@ export class WebGPUApp {
         const err = await this.device.popErrorScope();
         if (err) {
             console.error(`❌ GPU ValidationError:`, err);
-            console.error("withValidation called at:");
-            console.error(stackTrace);
+            console.error(`Caller info:\n${stackTrace}`);
             throw err;
         }
         return result;

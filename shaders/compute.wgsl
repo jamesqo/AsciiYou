@@ -22,14 +22,14 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   let uv = vec2<f32>((f32(gid.x)+0.5)/U.outW, (f32(gid.y)+0.5)/U.outH);
 
   // Sobel 3x3 in source space
-  let texSize = vec2<f32>(textureDimensions(cam));
+  let texSize = vec2<f32>(textureDimensions(cam, 0)); // use mipmap level 0 -- explicit level required for compute shaders
   let texel   = 1.0 / texSize;
 
   var L: array<array<f32,3>,3>;
   for (var j:i32=-1; j<=1; j++){
     for (var i:i32=-1; i<=1; i++){
       let coord = clamp(uv + vec2<f32>(f32(i),f32(j))*texel, vec2<f32>(0.0), vec2<f32>(1.0));
-      L[j+1][i+1] = luma(textureSample(cam, samp, coord).rgb);
+      L[j+1][i+1] = luma(textureSampleLevel(cam, samp, coord, 0.0).rgb); // use mipmap level 0 -- explicit level required for compute shaders
     }
   }
 
@@ -39,7 +39,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   let edge = sqrt(gx*gx + gy*gy);
 
   // Luminance at center
-  let lum = L[1][1];
+  var lum: f32 = L[1][1];
 
   // Contrast adjustment
   if (U.contrast != 1.0) {
@@ -53,6 +53,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   }
 
   // Map to ASCII index with edge bias
+  // TODO must be changed if we want to support different ramps
   let base = lum * 69.0; // 70 chars in RAMP_DENSE
   let bias = edge * U.edgeBias * 69.0;
   let idx_val = clamp(base + bias, 0.0, 69.0);

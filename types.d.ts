@@ -1,5 +1,10 @@
 import type { WebGPUApp } from './webgpu';
 
+interface AppControls {
+  hideLoading: () => void;
+  updateStatus: (msg: string) => void;
+}
+
 interface DebugTools {
   debugCanvas: () => void;
   debugTextures: () => void;
@@ -20,6 +25,10 @@ interface Navigator {
 declare global {
   interface Window {
     webGPUApp: WebGPUApp;
+    appControls: {
+      hideLoading: () => void;
+      updateStatus: (msg: string) => void;
+    };
     debugTools: DebugTools;
     frameCount?: number;
   }

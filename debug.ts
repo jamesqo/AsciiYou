@@ -1,3 +1,5 @@
+import type { WebGPUApp } from "./webgpu";
+
 function debugCanvas(): void {
     console.log("🔍 === CANVAS DEBUG ===");
     const canvas: HTMLCanvasElement | null = document.getElementById('gfx') as HTMLCanvasElement;
@@ -75,10 +77,10 @@ function debugRenderState(): void {
     console.log("🔍 === RENDER STATE DEBUG ===");
     if (window.webGPUApp) {
         console.log("Current uniforms:", window.webGPUApp.uniforms);
-        console.log("Current dimensions:", window.webGPUApp.outW, "x", window.webGPUApp.outH);
-        console.log("Current contrast:", window.webGPUApp.contrast);
-        console.log("Current edge bias:", window.webGPUApp.edgeBias);
-        console.log("Current invert:", window.webGPUApp.invert);
+        console.log("Current dimensions:", window.webGPUApp.settings.width, "x", window.webGPUApp.settings.height);
+        console.log("Current contrast:", window.webGPUApp.settings.contrast);
+        console.log("Current edge bias:", window.webGPUApp.settings.edgeBias);
+        console.log("Current invert:", window.webGPUApp.settings.invert);
     }
 }
 

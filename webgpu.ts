@@ -65,9 +65,6 @@ export class WebGPUApp {
             console.error('🔴 WebGPU uncaptured error:', e.error);
         };
 
-        // expose instance to global (matches types.d.ts expectations)
-        (window as any).webGPUApp = app as unknown as WebGPUApp;
-
         return app;
     }
 
@@ -266,7 +263,7 @@ export class WebGPUApp {
         );
         this.cols = cols;
         this.rows = rows;
-        this.updateUniforms(this.settings.width, this.settings.height, this.settings.edgeBias, this.settings.contrast, this.settings.invert);
+        this.updateUniforms();
     }
 }
 

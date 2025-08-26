@@ -7,12 +7,32 @@ async function initializeApp(): Promise<void> {
     // Use refactored WebGPU module
     const canvas = document.getElementById('gfx') as HTMLCanvasElement;
     const video = document.getElementById('cam') as HTMLVideoElement;
+    // Start webcam from here so permission is requested before GPU init
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+        (video as any).srcObject = stream;
+        await video.play();
+    } catch (e) {
+        console.error('❌ Failed to start webcam:', e);
+        throw e;
+    }
+
+    // Initialize WebGPU app
     const app = await WebGPUApp.initialize(canvas, video);
-    await app.run();
+    window.webGPUApp = app;
+
+    // Hide loading and update status
+    if (window.appControls) {
+        window.appControls.hideLoading();
+        window.appControls.updateStatus("Running | Press 'H' for help | Press 'W' to toggle webcam");
+    }
     
-    // Controls and shortcuts
-        setupControlListeners();
-        console.log("✅ Control listeners set up");
+    // Setup controls and shortcuts
+    setupControlListeners();
+    console.log("✅ Control listeners set up");
+
+    // Start rendering loop
+    await app.run();
 }
 
 // Control setup

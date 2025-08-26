@@ -384,10 +384,6 @@
                     e.preventDefault();
                     showHelp();
                     break;
-                case ' ':
-                    e.preventDefault();
-                    // Toggle pause (implement in main script)
-                    break;
                 case 'w':
                     e.preventDefault();
                     toggleWebcam();
@@ -436,8 +432,7 @@
         window.appControls = {
             updateStatus,
             hideLoading,
-            showError,
-            getControls: () => controls
+            // showError etc...
         };
     </script>
 </body>

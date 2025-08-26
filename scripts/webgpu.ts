@@ -6,7 +6,7 @@ export class UserSettings {
     width: number = 160;
     height: number = 90;
     contrast: number = 1.1;
-    edgeBias: number = 0.35;
+    edgeBias: number = -0.1; // TODO revert back to 0.35 once we've debugged the render shader
     invert: number = 0;
     atlas: string = 'dense';
 }
@@ -18,6 +18,8 @@ export class WebGPUApp {
     atlasTex!: GPUTexture;
     camTex!: GPUTexture;
     outputTex!: GPUTexture;
+    private atlasWidth!: number;
+    private atlasHeight!: number;
 
     uniforms!: GPUBuffer;
     cols!: number;
@@ -197,6 +199,8 @@ export class WebGPUApp {
         this.cols = cols;
         this.rows = rows;
         this.cellPx = cellPx;
+        this.atlasWidth = bitmap.width;
+        this.atlasHeight = bitmap.height;
         return atlasTex;
     }
 
@@ -226,8 +230,8 @@ export class WebGPUApp {
             this.cols,
             this.rows,
             this.cellPx,
-            this.atlasTex.width,
-            this.atlasTex.height
+            this.atlasWidth,
+            this.atlasHeight
         ]);
         const buf = this.device.createBuffer({ size: data.byteLength, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
         this.device.queue.writeBuffer(buf, 0, data as BufferSource);

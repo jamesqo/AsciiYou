@@ -18,6 +18,14 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     return; 
   }
   
+  // TODO delete this once we've debugged the render shader
+  // Debug mode: if edgeBias is negative, write a simple gradient pattern
+  if (U.edgeBias < 0.0) {
+    let cell_idx = gid.y * u32(U.outW) + gid.x;
+    idx[cell_idx] = (gid.x + gid.y) % 70u;
+    return;
+  }
+  
   // Map cell center to camera UV
   let uv = vec2<f32>((f32(gid.x)+0.5)/U.outW, (f32(gid.y)+0.5)/U.outH);
 

@@ -12,7 +12,7 @@ async function initializeApp(): Promise<void> {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
         (video as any).srcObject = stream;
         await video.play();
-    } catch (e) {
+        } catch (e) {
         console.error('❌ Failed to start webcam:', e);
         throw e;
     }
@@ -22,14 +22,14 @@ async function initializeApp(): Promise<void> {
     window.webGPUApp = app;
 
     // Hide loading and update status
-    if (window.appControls) {
-        window.appControls.hideLoading();
+        if (window.appControls) {
+            window.appControls.hideLoading();
         window.appControls.updateStatus("Running | Press 'H' for help | Press 'W' to toggle webcam");
     }
     
     // Setup controls and shortcuts
-    setupControlListeners();
-    console.log("✅ Control listeners set up");
+        setupControlListeners();
+        console.log("✅ Control listeners set up");
 
     // Start rendering loop
     await app.run();

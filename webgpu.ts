@@ -33,6 +33,37 @@ export class WebGPUApp {
     private format!: GPUTextureFormat;
     private video!: HTMLVideoElement;
 
+    // Debug helpers
+    private setupErrorHandlers(): void {
+        this.device.onuncapturederror = (e: GPUUncapturedErrorEvent) => {
+            console.error('🔴 WebGPU uncaptured error:', e.error);
+        };
+        this.device.lost.then((info) => {
+            console.error('🔌 WebGPU device lost:', info);
+        });
+    }
+
+    private captureStackTrace(depth = 1): string[] {
+        const err = new Error();
+        const stack = err.stack?.split("\n") ?? [];
+        return stack.slice(depth).join("\n");
+    }
+
+    private async withValidation<T>(op: () => T | Promise<T>): Promise<T> {
+        const stackTrace = this.captureStackTrace();
+
+        this.device.pushErrorScope('validation');
+        const result = await op();
+        const err = await this.device.popErrorScope();
+        if (err) {
+            console.error(`❌ GPU ValidationError:`, err);
+            console.error("withValidation called at:");
+            console.error(stackTrace);
+            throw err;
+        }
+        return result;
+    }
+
     private constructor() {}
 
     static async initialize(canvas: HTMLCanvasElement, video: HTMLVideoElement): Promise<WebGPUApp> {
@@ -43,6 +74,9 @@ export class WebGPUApp {
 
         app.device = await adapter.requestDevice();
         app.settings = new UserSettings();
+
+        // Install debug/error handlers early
+        app.setupErrorHandlers();
 
         // Configure canvas & video
         app.configureCanvas(canvas);
@@ -60,11 +94,6 @@ export class WebGPUApp {
         app.computeBindGroup = await app.createComputeBindGroup();
         app.renderBindGroup = await app.createRenderBindGroup();
 
-        // Error handling
-        app.device.onuncapturederror = (e: GPUUncapturedErrorEvent) => {
-            console.error('🔴 WebGPU uncaptured error:', e.error);
-        };
-
         return app;
     }
 
@@ -72,7 +101,7 @@ export class WebGPUApp {
         this.canvas = canvas;
         this.ctx = canvas.getContext('webgpu') as GPUCanvasContext;
         this.format = navigator.gpu.getPreferredCanvasFormat();
-        this.ctx.configure({ device: this.device, format: this.format, alphaMode: 'premultiplied' });
+        this.ctx.configure({ device: this.device, format: this.format, alphaMode: 'opaque' });
     }
 
     private async loadAtlasBitmap(atlasType: string): Promise<{ bitmap: ImageBitmap; cols: number; rows: number; cellPx: number; }> {
@@ -156,20 +185,49 @@ export class WebGPUApp {
         return { computeWGSL: await computeResponse.text(), renderWGSL: await renderResponse.text() };
     }
 
+    private async verifyCompilation(module: GPUShaderModule): Promise<void> {
+        // Check WGSL compile diagnostics (if supported)
+        const info = await (module.getCompilationInfo?.());
+        if (info) {
+            for (const m of info.messages) {
+                const where = m.lineNum !== undefined ? `:${m.lineNum}:${m.linePos}` : "";
+                const msg = `[WGSL:${m.type}] ${m.message}${where}`;
+                if (m.type === 'error') console.error(msg);
+                else if (m.type === 'warning') console.warn(msg);
+                else console.log(msg);
+            }
+            if (info.messages.some(m => m.type === 'error')) {
+                throw new Error('WGSL compile error(s) in compute shader. See logs above.');
+            }
+        }
+    }
+
     private async createComputePipeline(): Promise<GPUComputePipeline> {
         const { computeWGSL } = await this.loadShaders();
         const compMod = this.device.createShaderModule({ code: computeWGSL });
-        return this.device.createComputePipeline({ layout: 'auto', compute: { module: compMod, entryPoint: 'main' } });
+        await this.verifyCompilation(compMod);
+
+        return await this.withValidation(async () => {
+            const p = await this.device.createComputePipelineAsync({ layout: 'auto', compute: { module: compMod, entryPoint: 'main' } });
+            p.label = 'pipeline/compute-main';
+            return p;
+        });
     }
 
     private async createRenderPipeline(): Promise<GPURenderPipeline> {
         const { renderWGSL } = await this.loadShaders();
         const renMod = this.device.createShaderModule({ code: renderWGSL });
-        return this.device.createRenderPipeline({
-            layout: 'auto',
-            vertex: { module: renMod, entryPoint: 'vs_main' },
-            fragment: { module: renMod, entryPoint: 'fs_main', targets: [{ format: this.format }] },
-            primitive: { topology: 'triangle-list' }
+        await this.verifyCompilation(renMod);
+
+        return await this.withValidation(async () => {
+            const p = await this.device.createRenderPipelineAsync({
+                layout: 'auto',
+                vertex: { module: renMod, entryPoint: 'vs_main' },
+                fragment: { module: renMod, entryPoint: 'fs_main', targets: [{ format: this.format }] },
+                primitive: { topology: 'triangle-list' }
+            });
+            p.label = 'pipeline/render-main';
+            return p;
         });
     }
 
@@ -201,6 +259,27 @@ export class WebGPUApp {
         });
     }
 
+    doComputePass(encoder: GPUCommandEncoder): void {
+        const pass = encoder.beginComputePass();
+        pass.label = 'pass/compute';
+        pass.setPipeline(this.computePipeline);
+        pass.setBindGroup(0, this.computeBindGroup);
+        pass.dispatchWorkgroups(Math.ceil(this.settings.width / 16), Math.ceil(this.settings.height / 16));
+        pass.end();
+    }
+
+    doRenderPass(encoder: GPUCommandEncoder, view: GPUTextureView): void {
+        const pass = encoder.beginRenderPass({
+            colorAttachments: [{ view, clearValue: { r: 0, g: 1, b: 0, a: 1 }, loadOp: 'clear', storeOp: 'store' }]
+        });
+        pass.label = 'pass/render';
+        // TODO add back
+        // pass.setPipeline(this.renderPipeline);
+        // pass.setBindGroup(0, this.renderBindGroup);
+        // pass.draw(3, 1, 0, 0);
+        pass.end();
+    }
+
     async run(): Promise<void> {
         const frame = async () => {
             try {
@@ -211,25 +290,13 @@ export class WebGPUApp {
                 );
 
                 const encoder = this.device.createCommandEncoder();
-                // Compute pass
-                {
-                    const pass = encoder.beginComputePass();
-                    pass.setPipeline(this.computePipeline);
-                    pass.setBindGroup(0, this.computeBindGroup);
-                    pass.dispatchWorkgroups(Math.ceil(this.settings.width / 16), Math.ceil(this.settings.height / 16));
-                    pass.end();
-                }
-                // Render pass
+                encoder.label = 'encoder/frame';
+
+                this.doComputePass(encoder);
+
                 const view = this.ctx.getCurrentTexture().createView();
-                {
-                    const pass = encoder.beginRenderPass({
-                        colorAttachments: [{ view, clearValue: { r: 0, g: 0, b: 0, a: 1 }, loadOp: 'clear', storeOp: 'store' }]
-                    });
-                    pass.setPipeline(this.renderPipeline);
-                    pass.setBindGroup(0, this.renderBindGroup);
-                    pass.draw(3, 1, 0, 0);
-                    pass.end();
-                }
+                this.doRenderPass(encoder, view);
+
                 this.device.queue.submit([encoder.finish()]);
             } catch (e) {
                 console.error('❌ Frame render error:', e);
@@ -238,8 +305,6 @@ export class WebGPUApp {
             }
         };
         requestAnimationFrame(frame);
-
-        // No UI callbacks invoked here
     }
 
     updateUniforms(): void {
@@ -266,5 +331,3 @@ export class WebGPUApp {
         this.updateUniforms();
     }
 }
-
-

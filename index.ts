@@ -5,13 +5,14 @@ const edgeBias: number = 0.35, contrast: number = 1.1, invert: number = 0;
 // Main initialization function
 async function initializeApp(): Promise<void> {
     // Use refactored WebGPU module
-    const canvas = document.getElementById('canvas') as HTMLCanvasElement;
-    const video = document.getElementById('video') as HTMLVideoElement;
-    window.webGPUApp = await WebGPUApp.initialize(canvas, video);
+    const canvas = document.getElementById('gfx') as HTMLCanvasElement;
+    const video = document.getElementById('cam') as HTMLVideoElement;
+    const app = await WebGPUApp.initialize(canvas, video);
+    await app.run();
     
     // Controls and shortcuts
-    setupControlListeners();
-    console.log("✅ Control listeners set up");
+        setupControlListeners();
+        console.log("✅ Control listeners set up");
 }
 
 // Control setup
@@ -42,63 +43,36 @@ function setupControlListeners(): void {
     // Update WebGPU uniforms when controls change
     controls.width.addEventListener('change', () => {
         if (window.webGPUApp) {
-            window.webGPUApp.outW = parseInt(controls.width.value);
-            window.webGPUApp.updateUniforms(
-                window.webGPUApp.outW,
-                window.webGPUApp.outH,
-                parseFloat(controls.edgeBias.value),
-                parseFloat(controls.contrast.value),
-                controls.invert.checked ? 1.0 : 0.0
-            );
+            window.webGPUApp.settings.width = parseInt(controls.width.value);
+            window.webGPUApp.updateUniforms();
         }
     });
 
     controls.height.addEventListener('change', () => {
         if (window.webGPUApp) {
-            window.webGPUApp.outH = parseInt(controls.height.value);
-            window.webGPUApp.updateUniforms(
-                window.webGPUApp.outW,
-                window.webGPUApp.outH,
-                parseFloat(controls.edgeBias.value),
-                parseFloat(controls.contrast.value),
-                controls.invert.checked ? 1.0 : 0.0
-            );
+            window.webGPUApp.settings.height = parseInt(controls.height.value);
+            window.webGPUApp.updateUniforms();
         }
     });
 
     controls.contrast.addEventListener('change', () => {
         if (window.webGPUApp) {
-            window.webGPUApp.updateUniforms(
-                window.webGPUApp.outW,
-                window.webGPUApp.outH,
-                parseFloat(controls.edgeBias.value),
-                parseFloat(controls.contrast.value),
-                controls.invert.checked ? 1.0 : 0.0
-            );
+            window.webGPUApp.settings.contrast = parseFloat(controls.contrast.value);
+            window.webGPUApp.updateUniforms();
         }
     });
 
     controls.edgeBias.addEventListener('change', () => {
         if (window.webGPUApp) {
-            window.webGPUApp.updateUniforms(
-                window.webGPUApp.outW,
-                window.webGPUApp.outH,
-                parseFloat(controls.edgeBias.value),
-                parseFloat(controls.contrast.value),
-                controls.invert.checked ? 1.0 : 0.0
-            );
+            window.webGPUApp.settings.edgeBias = parseFloat(controls.edgeBias.value);
+            window.webGPUApp.updateUniforms();
         }
     });
 
     controls.invert.addEventListener('change', () => {
         if (window.webGPUApp) {
-            window.webGPUApp.updateUniforms(
-                window.webGPUApp.outW,
-                window.webGPUApp.outH,
-                parseFloat(controls.edgeBias.value),
-                parseFloat(controls.contrast.value),
-                controls.invert.checked ? 1.0 : 0.0
-            );
+            window.webGPUApp.settings.invert = controls.invert.checked ? 1.0 : 0.0;
+            window.webGPUApp.updateUniforms();
         }
     });
 

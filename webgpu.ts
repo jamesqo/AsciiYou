@@ -66,7 +66,7 @@ export class WebGPUApp {
         };
 
         // expose instance to global (matches types.d.ts expectations)
-        (window as any).webgpuApp = app as unknown as WebGPUApp;
+        (window as any).webGPUApp = app as unknown as WebGPUApp;
 
         return app;
     }
@@ -245,9 +245,13 @@ export class WebGPUApp {
         // No UI callbacks invoked here
     }
 
-    updateUniforms(newOutW: number, newOutH: number, newEdgeBias: number, newContrast: number, newInvert: number): void {
+    updateUniforms(): void {
         const data = new Float32Array([
-            newOutW, newOutH, newEdgeBias, newContrast, newInvert,
+            this.settings.width,
+            this.settings.height,
+            this.settings.edgeBias,
+            this.settings.contrast,
+            this.settings.invert,
             this.cols, this.rows, this.cellPx, this.atlasTex.width, this.atlasTex.height
         ]);
         this.device.queue.writeBuffer(this.uniforms, 0, data as BufferSource);

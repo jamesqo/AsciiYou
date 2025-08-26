@@ -1,3 +1,4 @@
+import type { WebGPUApp } from './webgpu';
 
 interface DebugTools {
   debugCanvas: () => void;
@@ -16,8 +17,10 @@ interface Navigator {
 }
 
 // Extend Window interface with custom properties
-interface Window {
-  webGPUApp: WebGPUApp;
-  debugTools: DebugTools;
-  frameCount?: number;
+declare global {
+  interface Window {
+    webGPUApp: WebGPUApp;
+    debugTools: DebugTools;
+    frameCount?: number;
+  }
 }

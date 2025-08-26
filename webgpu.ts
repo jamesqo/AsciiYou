@@ -269,13 +269,12 @@ export class WebGPUApp {
 
     doRenderPass(encoder: GPUCommandEncoder, view: GPUTextureView): void {
         const pass = encoder.beginRenderPass({
-            colorAttachments: [{ view, clearValue: { r: 0, g: 1, b: 0, a: 1 }, loadOp: 'clear', storeOp: 'store' }]
+            colorAttachments: [{ view, clearValue: { r: 0, g: 0, b: 0, a: 1 }, loadOp: 'clear', storeOp: 'store' }]
         });
         pass.label = 'pass/render';
-        // TODO add back
-        // pass.setPipeline(this.renderPipeline);
-        // pass.setBindGroup(0, this.renderBindGroup);
-        // pass.draw(3, 1, 0, 0);
+        pass.setPipeline(this.renderPipeline);
+        pass.setBindGroup(0, this.renderBindGroup);
+        pass.draw(3, 1, 0, 0);
         pass.end();
     }
 

@@ -5,12 +5,13 @@ struct VSOut {
 
 @vertex
 fn vs_main(@builtin(vertex_index) vi: u32) -> VSOut {
-  let x = f32(i32(vi) - 1);
-  let y = f32(i32(vi & 1u) * 2 - 1);
-  return VSOut(
-    vec4<f32>(x, y, 0.0, 1.0),
-    vec2<f32>(x * 0.5 + 0.5, y * 0.5 + 0.5)
+  let pos = array<vec2<f32>, 3>(
+    vec2<f32>(-1.0, -1.0),
+    vec2<f32>( 3.0, -1.0),
+    vec2<f32>(-1.0,  3.0)
   );
+  let p = pos[vi];
+  return VSOut(vec4<f32>(p, 0.0, 1.0), p * 0.5 + 0.5);
 }
 
 @group(0) @binding(0) var<storage, read> idx: array<u32>;

@@ -26,7 +26,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 
 # Character ramp (dense) — matches the web app
-RAMP_DENSE = " .'`^\",:;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$"
+RAMP_DENSE = " .'`^\",:;Il!i~+_-?][}{1)(|\\/tfrxnuvczXYUJCL0OZmwdbkhao*#MW&8%B@$"
 
 
 def expand_user_and_vars(path: str) -> str:
@@ -225,11 +225,11 @@ def create_atlas_image(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Generate glyph PNGs for RAMP_DENSE using a specified font family.")
-    parser.add_argument("--output-dir", default="glyphs", help="Directory to save glyph PNGs")
-    parser.add_argument("--font-path", default="", help="Explicit path to font file (.ttf/.otf)")
-    parser.add_argument("--font-family", default="Inconsolata", help="Font family name to search for (e.g., Inconsolata, Menlo)")
+    parser.add_argument("--output-dir", default="assets/glyphs", help="Directory to save glyph PNGs")
+    parser.add_argument("--font-path", default="assets/fonts/FiraCode-Bold.ttf", help="Explicit path to font file (.ttf/.otf)")
+    parser.add_argument("--font-family", default="Fira Code", help="Font family name to search for (e.g., Inconsolata, Menlo)")
     parser.add_argument("--weight", choices=["regular", "bold"], default="bold", help="Desired font weight; loads bold if available, else regular")
-    parser.add_argument("--font-size", type=int, default=32, help="Font size in pixels")
+    parser.add_argument("--font-size", type=int, default=36, help="Font size in pixels")
     parser.add_argument("--padding", type=int, default=4, help="Padding around glyph bbox (pixels)")
     parser.add_argument("--fg", default="#ffffff", help="Foreground color (hex like #ffffff)")
     parser.add_argument("--bg", default="#000000", help="Background color (hex like #000000)")

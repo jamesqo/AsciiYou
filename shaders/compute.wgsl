@@ -1,6 +1,6 @@
 struct Uniforms {
   outW: f32, outH: f32, edgeBias: f32, contrast: f32, invert: f32,
-  cols: f32, rows: f32, cellW: f32, cellH: f32, atlasW: f32, atlasH: f32,
+  cols: f32, rows: f32, rampLen: f32, cellW: f32, cellH: f32, atlasW: f32, atlasH: f32,
 };
 
 @group(0) @binding(0) var samp: sampler;
@@ -22,7 +22,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   // Debug mode: if edgeBias is negative, write a simple gradient pattern
   if (U.edgeBias < 0.0) {
     let cell_idx = gid.y * u32(U.outW) + gid.x;
-    idx[cell_idx] = (gid.x + gid.y) % 70u;
+    idx[cell_idx] = (gid.x + gid.y) % u32(U.rampLen);
     return;
   }
   
@@ -60,11 +60,11 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     lum = 1.0 - lum;
   }
 
-  // Map to ASCII index with edge bias
-  // TODO must be changed if we want to support different ramps
-  let base = lum * 69.0; // 70 chars in RAMP_DENSE
-  let bias = edge * U.edgeBias * 69.0;
-  let idx_val = clamp(base + bias, 0.0, 69.0);
+  // Map to ASCII index with edge bias using ramp length
+  let maxIdx = U.rampLen - 1.0;
+  let base = lum * maxIdx;
+  let bias = edge * U.edgeBias * maxIdx;
+  let idx_val = clamp(base + bias, 0.0, maxIdx);
   
   let cell_idx = gid.y * u32(U.outW) + gid.x;
   idx[cell_idx] = u32(idx_val);

@@ -21,7 +21,7 @@ fn vs_main(@builtin(vertex_index) vi: u32) -> VSOut {
 
 struct Uniforms {
   outW: f32, outH: f32, edgeBias: f32, contrast: f32, invert: f32,
-  cols: f32, rows: f32, cellPx: f32, atlasW: f32, atlasH: f32,
+  cols: f32, rows: f32, cellW: f32, cellH: f32, atlasW: f32, atlasH: f32,
 };
 
 @fragment
@@ -41,7 +41,7 @@ fn fs_main(in: VSOut) -> @location(0) vec4<f32> {
   let u = i % cols;
   let v = i / cols;
 
-  let tileSize = vec2<f32>(U.cellPx / U.atlasW, U.cellPx / U.atlasH);
+  let tileSize = vec2<f32>(U.cellW / U.atlasW, U.cellH / U.atlasH);
   let tileOrigin = vec2<f32>(f32(u) * tileSize.x, f32(v) * tileSize.y);
   let uv = tileOrigin + frac * tileSize;
 

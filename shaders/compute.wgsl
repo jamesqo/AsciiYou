@@ -1,6 +1,6 @@
 struct Uniforms {
   outW: f32, outH: f32, edgeBias: f32, contrast: f32, invert: f32,
-  cols: f32, rows: f32, cellPx: f32, atlasW: f32, atlasH: f32,
+  cols: f32, rows: f32, cellW: f32, cellH: f32, atlasW: f32, atlasH: f32,
 };
 
 @group(0) @binding(0) var samp: sampler;

@@ -1,6 +1,4 @@
 import { WebGPUApp } from './webgpu';
-const outW: number = 160, outH: number = 90; // ASCII grid (change to taste)
-const edgeBias: number = 0.35, contrast: number = 1.1, invert: number = 0;
 
 // Main initialization function
 async function initializeApp(): Promise<void> {

@@ -1,14 +1,14 @@
 // Use global WebGPUApp and AppControls interfaces from types.d.ts
 
-import { RAMP_DENSE, RAMP_BLOCKS } from './constants';
+import { Ramps, AtlasInfo, DefaultSettings } from './constants';
 
 export class UserSettings {
-    width: number = 160;
-    height: number = 90;
-    contrast: number = 1.1;
-    edgeBias: number = -0.1; // TODO revert back to 0.35 once we've debugged the render shader
-    invert: number = 0;
-    atlas: string = 'dense';
+    width: number = DefaultSettings.WIDTH;
+    height: number = DefaultSettings.HEIGHT;
+    contrast: number = DefaultSettings.CONTRAST;
+    edgeBias: number = DefaultSettings.EDGE_BIAS;
+    invert: number = DefaultSettings.INVERT;
+    atlas: string = DefaultSettings.ATLAS;
 }
 
 export class WebGPUApp {
@@ -23,7 +23,8 @@ export class WebGPUApp {
     uniforms!: GPUBuffer;
     cols!: number;
     rows!: number;
-    cellPx!: number;
+    cellW!: number;
+    cellH!: number;
 
     computePipeline!: GPUComputePipeline;
     renderPipeline!: GPURenderPipeline;
@@ -101,7 +102,7 @@ export class WebGPUApp {
 
     public async dumpCurrentASCII(): Promise<string> {
         const indices = Array.from(await this.dumpIndexBuffer());
-        const chars = indices.map(i => RAMP_DENSE[i]);
+        const chars = indices.map(i => Ramps.DENSE[i]);
         const cols = this.settings.width;
         const rows = this.settings.height;
         let out = '';
@@ -179,25 +180,22 @@ export class WebGPUApp {
         this.ctx.configure({ device: this.device, format: this.format, alphaMode: 'opaque' });
     }
 
-    private async loadAtlasBitmap(atlasType: string): Promise<{ bitmap: ImageBitmap; cols: number; rows: number; cellPx: number; }> {
-        const cols = 16;
-        const cellPx = 32;
-        let path = 'assets/dense_atlas.png';
-        let rows: number;
-        if (atlasType === 'blocks') {
-            path = 'assets/blocks_atlas.png';
-            rows = Math.ceil(RAMP_BLOCKS.length / cols);
-        } else {
-            rows = Math.ceil(RAMP_DENSE.length / cols);
-        }
+    // TODO remove 'any'
+    private async loadAtlasBitmap(atlasType: string): Promise<any> {
+        const cols = AtlasInfo.NUM_COLS;
+        const rows = AtlasInfo.NUM_ROWS;
+        const cellW = AtlasInfo.CELL_W;
+        const cellH = AtlasInfo.CELL_H;
+        const path = AtlasInfo.ATLAS_PATH;
+
         const res = await fetch(path);
         if (!res.ok) throw new Error(`Failed to load ${atlasType} atlas: ${res.status}`);
         const bitmap = await createImageBitmap(await res.blob());
-        return { bitmap, cols, rows, cellPx };
+        return { bitmap, cols, rows, cellW, cellH };
     }
 
     private async createAtlasTexture(atlasType: string): Promise<GPUTexture> {
-        const { bitmap, cols, rows, cellPx } = await this.loadAtlasBitmap(atlasType);
+        const { bitmap, cols, rows, cellW, cellH } = await this.loadAtlasBitmap(atlasType);
         const atlasTex = this.device.createTexture({
             size: [bitmap.width, bitmap.height],
             format: 'rgba8unorm-srgb',
@@ -210,7 +208,8 @@ export class WebGPUApp {
         );
         this.cols = cols;
         this.rows = rows;
-        this.cellPx = cellPx;
+        this.cellW = cellW;
+        this.cellH = cellH;
         this.atlasWidth = bitmap.width;
         this.atlasHeight = bitmap.height;
         return atlasTex;
@@ -233,7 +232,8 @@ export class WebGPUApp {
             this.settings.invert,
             this.cols,
             this.rows,
-            this.cellPx,
+            this.cellW,
+            this.cellH,
             this.atlasWidth,
             this.atlasHeight
         ]);
@@ -388,7 +388,12 @@ export class WebGPUApp {
             this.settings.edgeBias,
             this.settings.contrast,
             this.settings.invert,
-            this.cols, this.rows, this.cellPx, this.atlasTex.width, this.atlasTex.height
+            this.cols,
+            this.rows,
+            this.cellW,
+            this.cellH,
+            this.atlasTex.width,
+            this.atlasTex.height
         ]);
         this.device.queue.writeBuffer(this.uniforms, 0, data as BufferSource);
         // Re-allocate index buffer, which depends on the width and height set by the user

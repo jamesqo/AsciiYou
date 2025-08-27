@@ -17,7 +17,6 @@ export class WebGPUApp {
     device!: GPUDevice;
     atlasTex!: GPUTexture;
     camTex!: GPUTexture;
-    outputTex!: GPUTexture;
     private atlasWidth!: number;
     private atlasHeight!: number;
 
@@ -138,7 +137,6 @@ export class WebGPUApp {
         // Resources
         app.atlasTex = await app.createAtlasTexture(app.settings.atlas);
         app.camTex = await app.createCamTexture();
-        app.outputTex = await app.createOutputTexture();
         app.uniforms = await app.createUniforms();
         app.indexBuffer = app.createIndexBuffer();
 
@@ -223,14 +221,6 @@ export class WebGPUApp {
             size: [this.canvas.width, this.canvas.height],
             format: 'rgba8unorm',
             usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
-        });
-    }
-
-    private async createOutputTexture(): Promise<GPUTexture> {
-        return this.device.createTexture({
-            size: [this.settings.width, this.settings.height],
-            format: 'rgba8unorm',
-            usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING
         });
     }
 

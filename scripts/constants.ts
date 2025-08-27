@@ -1,5 +1,5 @@
 export class Ramps {
-    static readonly DENSE: string = " .'`^\",:;Il!i~+_-?][}{1)(|\\/tfrxnuvczXYUJCL0OZmwdbkhao*#MW&8%B@$";
+    static readonly DENSE: string = " .'`^\",:;~+_-?|\\/][}{)(tfrxYU0OZ#MW&8B@$";
     // static readonly BLOCKS: string = " ░▒▓█";
 }
 

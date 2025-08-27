@@ -26,7 +26,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 
 # Character ramp (dense) — matches the web app
-RAMP_DENSE = " .'`^\",:;Il!i~+_-?][}{1)(|\\/tfrxnuvczXYUJCL0OZmwdbkhao*#MW&8%B@$"
+RAMP_DENSE = " .'`^\",:;~+_-?|\\/][}{)(tfrxYU0OZ#MW&8B@$"
 
 
 def expand_user_and_vars(path: str) -> str:

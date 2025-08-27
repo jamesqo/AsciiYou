@@ -99,7 +99,7 @@ body {
     border-radius: 8px;
     z-index: 100;
     box-shadow: 0 4px 20px rgba(0, 255, 136, 0.3);
-    transform: scaleX(-1);
+    transform: scaleX(-1); /* TODO this is also mirroring the play button, which I don't like */
     transform-origin: center;
 }
 

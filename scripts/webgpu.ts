@@ -200,7 +200,7 @@ export class WebGPUApp {
         const { bitmap, cols, rows, cellPx } = await this.loadAtlasBitmap(atlasType);
         const atlasTex = this.device.createTexture({
             size: [bitmap.width, bitmap.height],
-            format: 'rgba8unorm',
+            format: 'rgba8unorm-srgb',
             usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
         });
         this.device.queue.copyExternalImageToTexture(
@@ -219,7 +219,7 @@ export class WebGPUApp {
     private async createCamTexture(): Promise<GPUTexture> {
         return this.device.createTexture({
             size: [this.canvas.width, this.canvas.height],
-            format: 'rgba8unorm',
+            format: 'rgba8unorm-srgb',
             usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
         });
     }

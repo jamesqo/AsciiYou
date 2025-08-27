@@ -1,175 +1,336 @@
 #!/usr/bin/env python3
-
 """
-generate_glyphs.py — Generate character glyph images for ASCII art webcam app.
+Generate individual glyph PNGs for characters in the dense ASCII ramp.
 
-This script creates a set of PNG images for each character in the ASCII ramps,
-which can be used as texture atlases in the WebGPU application.
+Requirements:
+  - Pillow (PIL)
 
-Usage:
-  python scripts/generate_glyphs.py
+This script renders each character from RAMP_DENSE using a chosen font family
+and saves each glyph as a PNG
+with the filename including the uniform glyph cell dimensions (w x h),
+e.g., "#_32x40.png" or "space_32x40.png".
+
+Example:
+  python demos/generate_glyphs.py --output-dir glyphs --font-family Inconsolata --font-size 32 --cols 16
+
+TODO: the generated atlas looks a bit odd with characters such as 'p' and 'q' elevated
+If we want to avoid this behavior when rendering glyphs, we must treat each row as a 'line box'
 """
 
-import os
-from PIL import Image, ImageDraw, ImageFont
 import argparse
+import os
+import sys
+from typing import Optional, Tuple
 
-# Character ramps (same as in the web app)
+from PIL import Image, ImageDraw, ImageFont
+
+
+# Character ramp (dense) — matches the web app
 RAMP_DENSE = " .'`^\",:;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$"
-RAMP_BLOCKS = " ░▒▓█"
 
-def create_glyph_image(char, size=32, font_size=24, bg_color=(0, 0, 0), fg_color=(255, 255, 255)):
-    """Create a single glyph image."""
-    # Create image with padding
-    img = Image.new('RGB', (size, size), bg_color)
-    draw = ImageDraw.Draw(img)
-    
-    # Try to use a monospace font
+
+def expand_user_and_vars(path: str) -> str:
+    return os.path.expandvars(os.path.expanduser(path))
+
+
+def try_load_font(font_path: str, font_size: int) -> Optional[ImageFont.FreeTypeFont]:
     try:
-        # Try system monospace fonts
-        font_names = ['Courier New', 'Monaco', 'Menlo', 'Consolas', 'DejaVu Sans Mono']
-        font = None
-        
-        for font_name in font_names:
+        return ImageFont.truetype(font_path, font_size)
+    except (OSError, IOError):
+        return None
+
+
+def find_font_variant(
+    font_family: str,
+    font_size: int,
+    explicit_path: Optional[str],
+    want_bold: bool = True,
+    extra_search_dirs: Optional[Tuple[str, ...]] = None,
+) -> Tuple[Optional[ImageFont.FreeTypeFont], str, bool]:
+    """
+    Attempt to load the requested font family.
+
+    Returns (font, path_used, is_true_bold)
+    - font may be None if not found
+    - is_true_bold indicates whether the loaded font is a bold face
+    """
+    if explicit_path:
+        path = expand_user_and_vars(explicit_path)
+        font = try_load_font(path, font_size)
+        if font is not None:
+            # Assume explicit path points to bold or desired variant
+            return font, path, want_bold
+
+    candidate_dirs = [
+        "./assets/fonts",
+        "./fonts",
+        os.path.join(os.path.dirname(__file__), "../assets/fonts"),
+        "/Library/Fonts",
+        os.path.expanduser("~/Library/Fonts"),
+        "/System/Library/Fonts",
+        "/System/Library/Fonts/Supplemental",
+    ]
+    if extra_search_dirs:
+        candidate_dirs = list(extra_search_dirs) + candidate_dirs
+
+    fam = font_family.strip()
+    # Prepare candidate file names
+    bold_candidates = [
+        f"{fam}-Bold.ttf",
+        f"{fam} Bold.ttf",
+        f"{fam}-Bold.otf",
+        f"{fam}-Bold.ttc",
+        f"{fam}-SemiBold.ttf",
+        f"{fam}-DemiBold.ttf",
+    ]
+    regular_candidates = [
+        f"{fam}-Regular.ttf",
+        f"{fam}.ttf",
+        f"{fam}.otf",
+        f"{fam}.ttc",
+    ]
+
+    if want_bold:
+        # Try bold faces first
+        for d in candidate_dirs:
+            for f in bold_candidates:
+                path = os.path.join(expand_user_and_vars(d), f)
+                if os.path.isfile(path):
+                    font = try_load_font(path, font_size)
+                    if font is not None:
+                        return font, path, True
+
+    for d in candidate_dirs:
+        for f in regular_candidates:
+            path = os.path.join(expand_user_and_vars(d), f)
+            if os.path.isfile(path):
+                font = try_load_font(path, font_size)
+                if font is not None:
+                    return font, path, False
+
+    # Try by font name via FreeType — not always supported
+    if want_bold:
+        for name in (f"{fam}-Bold", f"{fam} Bold"):
             try:
-                font = ImageFont.truetype(font_name, font_size)
-                break
-            except:
-                continue
-        
-        if font is None:
-            # Fallback to default font
-            font = ImageFont.load_default()
-            
-    except Exception:
-        font = ImageFont.load_default()
-    
-    # Calculate text position to center it
-    bbox = draw.textbbox((0, 0), char, font=font)
-    text_width = bbox[2] - bbox[0]
-    text_height = bbox[3] - bbox[1]
-    
-    x = (size - text_width) // 2
-    y = (size - text_height) // 2
-    
-    # Draw the character
-    draw.text((x, y), char, fill=fg_color, font=font)
-    
+                font = ImageFont.truetype(name, font_size)
+                return font, f"{name} (system)", True
+            except (OSError, IOError):
+                pass
+    try:
+        font = ImageFont.truetype(fam, font_size)
+        return font, f"{fam} (system)", False
+    except (OSError, IOError):
+        pass
+
+    return None, "", False
+
+
+def sanitize_char_for_filename(ch: str) -> str:
+    if ch == " ":
+        return "space"
+    if ch in "\\/|:*?\"<>":
+        return f"char_{ord(ch)}"
+    # Use visible character directly
+    return ch
+
+
+def measure_glyph_bbox(
+    ch: str,
+    font: ImageFont.FreeTypeFont,
+    bg: Tuple[int, int, int],
+) -> Tuple[int, int, Tuple[int, int, int, int]]:
+    # Temporary canvas to measure text bbox precisely
+    canvas_size = 4 * max(32, font.size)
+    temp_img = Image.new("RGB", (canvas_size, canvas_size), bg)
+    temp_draw = ImageDraw.Draw(temp_img)
+    # Measure with baseline anchor so widths match how we place text later
+    bbox = temp_draw.textbbox((0, 0), ch, font=font, anchor="ls")
+    tw = max(1, bbox[2] - bbox[0])
+    th = max(1, bbox[3] - bbox[1])
+    return tw, th, bbox
+
+
+def draw_glyph_to_cell(
+    ch: str,
+    font: ImageFont.FreeTypeFont,
+    fg: Tuple[int, int, int],
+    bg: Tuple[int, int, int],
+    cell_w: int,
+    cell_h: int,
+    bottom_padding: int,
+) -> Image.Image:
+    img = Image.new("RGB", (cell_w, cell_h), bg)
+    draw = ImageDraw.Draw(img)
+    # Horizontal centering and bottom-justified baseline with padding
+    bbox = draw.textbbox((0, 0), ch, font=font, anchor="ls")
+    tw = max(1, bbox[2] - bbox[0])
+    # Use font descent to compute baseline from bottom
+    try:
+        _ascent, descent = font.getmetrics()
+    except (AttributeError, TypeError, ValueError):
+        descent = int(round(font.size * 0.25))
+    tx = (cell_w - tw) // 2
+    # Place baseline so bottom padding is respected; top padding becomes >= specified padding
+    ty = cell_h - max(1, bottom_padding) - descent
+    draw.text((tx, ty), ch, font=font, fill=fg, anchor="ls")
     return img
 
-def create_atlas(ramp, cols=16, cell_size=32, output_path="assets/glyphs.png"):
-    """Create a texture atlas from a character ramp."""
-    # Calculate grid dimensions
-    rows = (len(ramp) + cols - 1) // cols  # Ceiling division
-    
-    # Create atlas image
-    atlas_width = cols * cell_size
-    atlas_height = rows * cell_size
-    atlas = Image.new('RGB', (atlas_width, atlas_height), (0, 0, 0))
-    
-    # Place each character
-    for i, char in enumerate(ramp):
-        row = i // cols
-        col = i % cols
-        
-        x = col * cell_size
-        y = row * cell_size
-        
-        # Create individual glyph image
-        glyph = create_glyph_image(char, cell_size)
-        
-        # Paste into atlas
-        atlas.paste(glyph, (x, y))
-    
-    # Ensure output directory exists
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    
-    # Save atlas
-    atlas.save(output_path, 'PNG')
-    print(f"Created atlas: {output_path} ({atlas_width}x{atlas_height})")
-    
+
+def normalize_tag(text: str) -> str:
+    t = text.strip().lower().replace(" ", "-")
+    # Keep alnum, dash, underscore only
+    return "".join(ch for ch in t if (ch.isalnum() or ch in "-_"))
+
+
+def get_font_tag(font: ImageFont.FreeTypeFont) -> str:
+    try:
+        family, style = font.getname()
+    except (AttributeError, TypeError, ValueError):
+        family, style = ("font", "regular")
+    return normalize_tag(f"{family}-{style}")
+
+
+def create_atlas_image(
+    ramp: str,
+    font: ImageFont.FreeTypeFont,
+    fg: Tuple[int, int, int],
+    bg: Tuple[int, int, int],
+    cell_w: int,
+    cell_h: int,
+    cols: int,
+    bottom_padding: int,
+) -> Image.Image:
+    rows = (len(ramp) + cols - 1) // cols
+    atlas = Image.new("RGB", (cols * cell_w, rows * cell_h), bg)
+    draw = ImageDraw.Draw(atlas)
+
+    for idx, ch in enumerate(ramp):
+        r = idx // cols
+        c = idx % cols
+        x0 = c * cell_w
+        y0 = r * cell_h
+
+        # Measure character (use baseline anchor)
+        bbox = draw.textbbox((0, 0), ch, font=font, anchor="ls")
+        tw = max(1, bbox[2] - bbox[0])
+        # Bottom-justify using measured bbox; horizontally center
+        tx = x0 + (cell_w - tw) // 2
+        ty = y0 + cell_h - max(1, bottom_padding) - bbox[3]
+
+        # Draw character
+        draw.text((tx, ty), ch, font=font, fill=fg, anchor="ls")
+
     return atlas
 
-def create_individual_glyphs(ramp, output_dir="assets/glyphs", cell_size=32):
-    """Create individual glyph images."""
-    # Ensure output directory exists
-    os.makedirs(output_dir, exist_ok=True)
-    
-    for i, char in enumerate(ramp):
-        # Create filename-safe character name
-        if char == ' ':
-            char_name = 'space'
-        elif char in '\\/|':
-            char_name = f'char_{ord(char)}'
-        else:
-            char_name = char
-        
-        # Create glyph image
-        glyph = create_glyph_image(char, cell_size)
-        
-        # Save individual file
-        output_path = os.path.join(output_dir, f"{char_name}.png")
-        glyph.save(output_path, 'PNG')
-    
-    print(f"Created {len(ramp)} individual glyphs in: {output_dir}")
 
-def main():
-    parser = argparse.ArgumentParser(description="Generate character glyph images for ASCII art")
-    parser.add_argument("--output-dir", default="assets", help="Output directory for assets")
-    parser.add_argument("--cell-size", type=int, default=32, help="Size of each glyph cell in pixels")
-    parser.add_argument("--cols", type=int, default=16, help="Number of columns in atlas")
-    parser.add_argument("--individual", action="store_true", help="Also create individual glyph files")
-    
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Generate glyph PNGs for RAMP_DENSE using a specified font family.")
+    parser.add_argument("--output-dir", default="glyphs", help="Directory to save glyph PNGs")
+    parser.add_argument("--font-path", default="", help="Explicit path to font file (.ttf/.otf)")
+    parser.add_argument("--font-family", default="Inconsolata", help="Font family name to search for (e.g., Inconsolata, Menlo)")
+    parser.add_argument("--weight", choices=["regular", "bold"], default="bold", help="Desired font weight; loads bold if available, else regular")
+    parser.add_argument("--font-size", type=int, default=32, help="Font size in pixels")
+    parser.add_argument("--padding", type=int, default=4, help="Padding around glyph bbox (pixels)")
+    parser.add_argument("--fg", default="#ffffff", help="Foreground color (hex like #ffffff)")
+    parser.add_argument("--bg", default="#000000", help="Background color (hex like #000000)")
+    parser.add_argument("--cols", type=int, default=16, help="Number of columns in the atlas grid")
+
     args = parser.parse_args()
-    
-    print("Generating ASCII art glyph assets...")
-    
-    # Create assets directory
-    os.makedirs(args.output_dir, exist_ok=True)
-    
-    # Generate dense ramp atlas
-    dense_atlas_path = os.path.join(args.output_dir, "dense_atlas.png")
-    create_atlas(RAMP_DENSE, args.cols, args.cell_size, dense_atlas_path)
-    
-    # Generate blocks ramp atlas
-    blocks_atlas_path = os.path.join(args.output_dir, "blocks_atlas.png")
-    create_atlas(RAMP_BLOCKS, args.cols, args.cell_size, blocks_atlas_path)
-    
-    # Create individual glyphs if requested
-    if args.individual:
-        dense_glyphs_dir = os.path.join(args.output_dir, "dense_glyphs")
-        blocks_glyphs_dir = os.path.join(args.output_dir, "blocks_glyphs")
-        standard_glyphs_dir = os.path.join(args.output_dir, "standard_glyphs")
-        
-        create_individual_glyphs(RAMP_DENSE, dense_glyphs_dir, args.cell_size)
-        create_individual_glyphs(RAMP_BLOCKS, blocks_glyphs_dir, args.cell_size)
-    
-    # Create metadata file
-    metadata = {
-        "dense_atlas": {
-            "path": "dense_atlas.png",
-            "cols": args.cols,
-            "rows": (len(RAMP_DENSE) + args.cols - 1) // args.cols,
-            "cell_size": args.cell_size,
-            "characters": RAMP_DENSE
-        },
-        "blocks_atlas": {
-            "path": "blocks_atlas.png",
-            "cols": args.cols,
-            "rows": (len(RAMP_BLOCKS) + args.cols - 1) // args.cols,
-            "cell_size": args.cell_size,
-            "characters": RAMP_BLOCKS
-        },
 
-    }
-    
-    import json
-    metadata_path = os.path.join(args.output_dir, "metadata.json")
-    with open(metadata_path, 'w') as f:
-        json.dump(metadata, f, indent=2)
-    
-    print(f"Created metadata: {metadata_path}")
-    print("Glyph generation complete!")
+    def parse_hex_color(s: str) -> Tuple[int, int, int]:
+        s = s.strip()
+        if s.startswith("#"):
+            s = s[1:]
+        if len(s) == 3:
+            s = "".join([c * 2 for c in s])
+        if len(s) != 6:
+            raise ValueError("Color must be #rgb or #rrggbb")
+        return tuple(int(s[i : i + 2], 16) for i in (0, 2, 4))  # type: ignore[return-value]
+
+    fg = parse_hex_color(args.fg)
+    bg = parse_hex_color(args.bg)
+
+    want_bold = args.weight == "bold"
+    font, font_path_used, is_true_bold = find_font_variant(
+        font_family=args.font_family,
+        font_size=args.font_size,
+        explicit_path=args.font_path or None,
+        want_bold=want_bold,
+    )
+    if font is None:
+        print(f"ERROR: Could not load font family '{args.font_family}'. Install it or pass --font-path.")
+        sys.exit(1)
+
+    os.makedirs(args.output_dir, exist_ok=True)
+
+    if want_bold and is_true_bold:
+        print(f"Loaded bold font: {font_path_used}")
+    else:
+        print(f"Loaded font: {font_path_used}")
+
+    print(f"Generating {len(RAMP_DENSE)} glyphs to: {args.output_dir}")
+
+    # First pass: measure all glyph bbox sizes
+    measured_widths = []
+    measured_heights = []
+    bboxes = {}
+    for ch in RAMP_DENSE:
+        gw, gh, bbox = measure_glyph_bbox(
+            ch=ch,
+            font=font,
+            bg=bg,
+        )
+        measured_widths.append(gw)
+        measured_heights.append(gh)
+        bboxes[ch] = (gw, gh, bbox)
+
+    # Infer uniform cell size from measured glyph bbox sizes
+    max_w = max(measured_widths) if measured_widths else args.font_size
+    max_h = max(measured_heights) if measured_heights else args.font_size
+    cell_w = max_w + 2 * args.padding
+    cell_h = max_h + 2 * args.padding
+    print(f"Inferred cell size: {cell_w}x{cell_h} (w x h)")
+
+    # Second pass: render and save fixed-size glyph PNGs (filenames include uniform cell size)
+    for ch in RAMP_DENSE:
+        glyph_img = draw_glyph_to_cell(
+            ch=ch,
+            font=font,
+            fg=fg,
+            bg=bg,
+            cell_w=cell_w,
+            cell_h=cell_h,
+            bottom_padding=args.padding,
+        )
+
+        safe_name = sanitize_char_for_filename(ch)
+        filename = f"{safe_name}_{cell_w}x{cell_h}.png"
+        out_path = os.path.join(args.output_dir, filename)
+        glyph_img.save(out_path, "PNG")
+
+    # Create an atlas written into assets/
+    font_tag = get_font_tag(font)
+    atlas_filename = f"dense_atlas_{font_tag}_{cell_w}x{cell_h}.png"
+    assets_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "assets"))
+    os.makedirs(assets_dir, exist_ok=True)
+    atlas_path = os.path.join(assets_dir, atlas_filename)
+    atlas_img = create_atlas_image(
+        ramp=RAMP_DENSE,
+        font=font,
+        fg=fg,
+        bg=bg,
+        cell_w=cell_w,
+        cell_h=cell_h,
+        cols=args.cols,
+        bottom_padding=args.padding,
+    )
+    atlas_img.save(atlas_path, "PNG")
+    print(f"Created atlas: {atlas_path} ({atlas_img.width}x{atlas_img.height})")
+
+    print("Done.")
+
 
 if __name__ == "__main__":
     main()
+
+

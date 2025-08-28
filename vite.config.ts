@@ -20,7 +20,7 @@ function debugPlugin(): Plugin {
         req.on('end', () => {
           try {
             const outDir = path.resolve(process.cwd(), 'debug', 'screenshots')
-            const baseName = `screenshot-${Date.now()}`
+            const baseName = `screenshot-${Date.now()}.png`
             fs.mkdirSync(outDir, { recursive: true })
             const outPath = path.join(outDir, baseName)
             fs.writeFileSync(outPath, Buffer.concat(chunks))

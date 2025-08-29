@@ -125,7 +125,7 @@
         };
 
         // Initialize defaults from constants.ts DefaultSettings
-        import('./scripts/constants.js').then(({ DefaultSettings }) => {
+        import('./scripts/constants.ts').then(({ DefaultSettings }) => {
             controls.width.value = String(DefaultSettings.WIDTH);
             controls.height.value = String(DefaultSettings.HEIGHT);
             controls.contrast.value = String(DefaultSettings.CONTRAST);

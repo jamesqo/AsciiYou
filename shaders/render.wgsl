@@ -27,7 +27,7 @@ struct Uniforms {
 @fragment
 fn fs_main(in: VSOut) -> @location(0) vec4<f32> {
   // Which cell are we in?
-  let flipped = vec2<f32>(in.uv.x, 1.0 - in.uv.y);
+  let flipped = 1.0 - in.uv;
   let px = flipped * vec2<f32>(U.outW, U.outH);
   let cx = clamp(u32(px.x), 0u, u32(U.outW)-1u);
   let cy = clamp(u32(px.y), 0u, u32(U.outH)-1u);

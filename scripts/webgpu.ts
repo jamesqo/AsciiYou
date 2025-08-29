@@ -100,7 +100,7 @@ export class WebGPUApp {
         return indices;
     }
 
-    public async dumpCurrentASCII(): Promise<string> {
+    public async dumpASCIIMask(): Promise<string> {
         const indices = Array.from(await this.dumpIndexBuffer());
         const chars = indices.map(i => Ramps.DENSE[i]);
         const cols = this.settings.width;
@@ -203,7 +203,7 @@ export class WebGPUApp {
         });
         this.device.queue.copyExternalImageToTexture(
             { source: bitmap },
-            { texture: atlasTex },
+            { texture: atlasTex, mipLevel: 0 },
             [bitmap.width, bitmap.height]
         );
         this.cols = cols;
@@ -216,10 +216,23 @@ export class WebGPUApp {
     }
 
     private async createCamTexture(): Promise<GPUTexture> {
+        async function waitForVideoMetadata(video: HTMLVideoElement) {
+            if (video.readyState >= 1) {
+                // HAVE_METADATA or beyond
+                return;
+            }
+            await new Promise(resolve => {
+                video.addEventListener("loadedmetadata", resolve, { once: true });
+            });
+        }
+
+        // Wait for video metadata to be loaded so we can get the correct size
+        await waitForVideoMetadata(this.video);
         return this.device.createTexture({
-            size: [this.canvas.width, this.canvas.height],
+            size: [this.video.videoWidth, this.video.videoHeight],
             format: 'rgba8unorm-srgb',
-            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+            mipLevelCount: 1
         });
     }
 
@@ -358,21 +371,27 @@ export class WebGPUApp {
     async run(): Promise<void> {
         const frame = async () => {
             try {
-                this.device.queue.copyExternalImageToTexture(
-                    { source: this.video },
-                    { texture: this.camTex },
-                    [this.canvas.width, this.canvas.height]
-                );
+                await this.withValidation(async () => {
+                    if (this.video.videoWidth !== this.camTex.width || this.video.videoHeight !== this.camTex.height) {
+                        throw new Error('Video and camera texture sizes do not match');
+                    }
 
-                const encoder = this.device.createCommandEncoder();
-                encoder.label = 'encoder/frame';
+                    this.device.queue.copyExternalImageToTexture(
+                        { source: this.video },
+                        { texture: this.camTex, mipLevel: 0 },
+                        [this.video.videoWidth, this.video.videoHeight]
+                    );
 
-                this.doComputePass(encoder);
+                    const encoder = this.device.createCommandEncoder();
+                    encoder.label = 'encoder/frame';
 
-                const view = this.ctx.getCurrentTexture().createView();
-                this.doRenderPass(encoder, view);
+                    this.doComputePass(encoder);
 
-                this.device.queue.submit([encoder.finish()]);
+                    const view = this.ctx.getCurrentTexture().createView();
+                    this.doRenderPass(encoder, view);
+
+                    this.device.queue.submit([encoder.finish()]);
+                });
             } catch (e) {
                 console.error('❌ Frame render error:', e);
             } finally {

@@ -264,7 +264,7 @@ function screenshotCanvas(): void {
             return;
         }
         // 0) Dump current ASCII state
-        const ascii = await window.webGPUApp?.dumpCurrentASCII();
+        const ascii = await window.webGPUApp?.dumpASCIIMask();
 
         // 1) Save screenshot as raw blob
         const res1 = await fetch('/debug/save-screenshot', { method: 'POST', body: blob });

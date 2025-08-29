@@ -22,30 +22,27 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   // Map cell center to camera UV
   let uv = vec2<f32>((f32(gid.x)+0.5)/U.outW, (f32(gid.y)+0.5)/U.outH);
 
-  // // Sobel 3x3 in source space
-  // let texSize = vec2<f32>(textureDimensions(cam, 0)); // use mipmap level 0 -- explicit level required for compute shaders
-  // let texel   = 1.0 / texSize;
+  // Sobel 3x3 in source space
+  let cellSize = vec2<f32>(U.cellW, U.cellH);
+  // let texSize = vec2<f32>(textureDimensions(cam, 0));
+  let unit   = 1.0 / cellSize;
 
-  // var L: array<array<f32,3>,3>;
-  // for (var j:i32=-1; j<=1; j++){
-  //   for (var i:i32=-1; i<=1; i++){
-  //     let coord = clamp(uv + vec2<f32>(f32(i),f32(j))*texel, vec2<f32>(0.0), vec2<f32>(1.0));
-  //     L[j+1][i+1] = luma(textureSampleLevel(cam, samp, coord, 0.0).rgb); // use mipmap level 0 -- explicit level required for compute shaders
-  //   }
-  // }
+  var L: array<array<f32,3>,3>;
+  for (var j:i32=-1; j<=1; j++){
+    for (var i:i32=-1; i<=1; i++){
+      let coord = clamp(uv + vec2<f32>(f32(i),f32(j))*unit, vec2<f32>(0.0), vec2<f32>(1.0));
+      let camColor = textureSampleLevel(cam, samp, coord, 0.0).rgb;
+      L[j+1][i+1] = luma(camColor); // use mipmap level 0 -- explicit level required for compute shaders
+    }
+  }
 
   // Sobel gradients
-  // let gx = L[0][0] + 2.0*L[1][0] + L[2][0] - L[0][2] - 2.0*L[1][2] - L[2][2];
-  // let gy = L[0][0] + 2.0*L[0][1] + L[0][2] - L[2][0] - 2.0*L[2][1] - L[2][2];
-  // let edge = sqrt(gx*gx + gy*gy); // TODO change to L1 norm
+  let gx = L[0][0] + 2.0*L[1][0] + L[2][0] - L[0][2] - 2.0*L[1][2] - L[2][2];
+  let gy = L[0][0] + 2.0*L[0][1] + L[0][2] - L[2][0] - 2.0*L[2][1] - L[2][2];
+  let edge = abs(gx) + abs(gy); // L1 norm for faster computation
 
   // Luminance at center
-  // var lum: f32 = L[1][1];
-
-  // Naive box filter texture sample
-
-  var camColor: vec3<f32> = textureSampleLevel(cam, samp, uv, 0.0).rgb;
-  var lum: f32 = luma(camColor);
+  var lum: f32 = L[1][1];
 
   // Contrast adjustment
   if (U.contrast != 1.0) {
@@ -61,10 +58,10 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   // Map to ASCII index with edge bias using ramp length
   let maxIdx = U.rampLen - 1.0;
   let base = lum * maxIdx;
-  // let bias = edge * U.edgeBias * maxIdx;
-  // let idx_val = clamp(base + bias, 0.0, maxIdx);
-  let idx_val = base;
-  
+  let bias = edge * U.edgeBias * maxIdx;
+  let idx_val = clamp(base + bias, 0.0, maxIdx);
+  // let idx_val = clamp(bias, 0.0, maxIdx);
+
   let cell_idx = gid.y * u32(U.outW) + gid.x;
   idx[cell_idx] = u32(idx_val);
 }

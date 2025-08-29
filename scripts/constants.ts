@@ -13,8 +13,8 @@ export class AtlasInfo {
 }
 
 export class DefaultSettings {
-    static readonly WIDTH: number = 80;
-    static readonly HEIGHT: number = 30;
+    static readonly WIDTH: number = 105;
+    static readonly HEIGHT: number = 45;
     static readonly CONTRAST: number = 1.1;
     static readonly EDGE_BIAS: number = 0.35;
     static readonly INVERT: number = 0;

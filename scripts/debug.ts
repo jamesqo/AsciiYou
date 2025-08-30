@@ -22,7 +22,6 @@ function debugTextures(): void {
     if (window.webGPUApp && window.webGPUApp.device) {
         console.log("Camera texture:", window.webGPUApp.camTex);
         console.log("Atlas texture:", window.webGPUApp.atlasTex);
-        console.log("Output texture:", window.webGPUApp.outputTex);
         
         // Check if textures have valid dimensions
         if (window.webGPUApp.camTex) {
@@ -30,9 +29,6 @@ function debugTextures(): void {
         }
         if (window.webGPUApp.atlasTex) {
             console.log("Atlas texture dimensions:", window.webGPUApp.atlasTex.width, "x", window.webGPUApp.atlasTex.height);
-        }
-        if (window.webGPUApp.outputTex) {
-            console.log("Output texture dimensions:", window.webGPUApp.outputTex.width, "x", window.webGPUApp.outputTex.height);
         }
     }
 }
@@ -186,14 +182,6 @@ function debugShaderResources(): void {
             height: app.atlasTex?.height,
             format: app.atlasTex?.format,
             usage: app.atlasTex?.usage
-        });
-        
-        console.log("Output texture:", {
-            exists: !!app.outputTex,
-            width: app.outputTex?.width,
-            height: app.outputTex?.height,
-            format: app.outputTex?.format,
-            usage: app.outputTex?.usage
         });
     }
 }

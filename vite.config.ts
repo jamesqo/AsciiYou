@@ -1,4 +1,5 @@
 import { defineConfig, type Plugin } from 'vite'
+import react from '@vitejs/plugin-react-swc'
 import fs from 'fs'
 import path from 'path'
 
@@ -69,7 +70,7 @@ export default defineConfig({
     port: 8000,
     open: true,
   },
-  plugins: [debugPlugin()],
+  plugins: [react(), debugPlugin()],
   build: {
     target: 'esnext',
     rollupOptions: {

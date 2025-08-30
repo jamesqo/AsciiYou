@@ -4,7 +4,9 @@ import App from './App'
 
 const rootEl = document.getElementById('root')!
 createRoot(rootEl).render(
-  <React.StrictMode>
+// Disable strict mode for now because it doesn't play nice with the webcam feed
+//   <React.StrictMode>
+//     <App />
+//   </React.StrictMode>
     <App />
-  </React.StrictMode>
 )

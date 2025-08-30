@@ -58,6 +58,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   // Map to ASCII index with edge bias using ramp length
   let maxIdx = U.rampLen - 1.0;
   let base = lum * maxIdx;
+  // TODO in the future re-visit edge detection algorithm + how we're using it
   let bias = edge * U.edgeBias * maxIdx;
   let idx_val = clamp(base + bias, 0.0, maxIdx);
   // let idx_val = clamp(bias, 0.0, maxIdx);

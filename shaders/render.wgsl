@@ -45,6 +45,8 @@ fn fs_main(in: VSOut) -> @location(0) vec4<f32> {
   let tileOrigin = vec2<f32>(f32(u) * tileSize.x, f32(v) * tileSize.y);
   let uv = tileOrigin + frac * tileSize;
 
-  let g = textureSample(glyphAtlas, atlasSamp, uv).r; // glyph luminance
-  return vec4<f32>(g, g, g, 1.0);
+  // NOTE: textureSample auto-converts from sRGB to linear space
+  let glyphColor = textureSample(glyphAtlas, atlasSamp, uv).rgb;
+  let glyphLum: f32 = (f32(i) / (U.rampLen - 1.0)); // approximate -- to get the actual luminance we'd need to rework the compute shader
+  return vec4<f32>((glyphColor * glyphLum), 1.0);
 }

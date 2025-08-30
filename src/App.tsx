@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { WebGPUApp } from '../scripts/webgpu'
-import { DefaultSettings } from '../scripts/constants'
+import { WebGPUApp } from './webgpu'
+import { DefaultSettings } from './constants'
 
 export default function App() {
     const canvasRef = useRef<HTMLCanvasElement | null>(null)

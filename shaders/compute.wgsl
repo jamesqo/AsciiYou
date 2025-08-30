@@ -20,7 +20,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   }
   
   // Map cell center to camera UV
-  let uv = vec2<f32>((f32(gid.x)+0.5)/U.outW, (f32(gid.y)+0.5)/U.outH);
+  let uv = vec2<f32>(1.0 - ((f32(gid.x)+0.5)/U.outW), (f32(gid.y)+0.5)/U.outH);
 
   // Sobel 3x3 in source space
   let cellSize = vec2<f32>(U.cellW, U.cellH);

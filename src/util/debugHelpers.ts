@@ -1,4 +1,4 @@
-import type { WebGPUApp } from "../engine/webgpu";
+import type { ASCIIRenderer } from "../engine/ASCIIRenderer";
 import type { DebugTools } from '../types'
 
 export function debugCanvas(): void {
@@ -20,16 +20,16 @@ export function debugCanvas(): void {
 
 export function debugTextures(): void {
     console.log("🔍 === TEXTURE DEBUG ===");
-    if (window.webGPUApp && window.webGPUApp.device) {
-        console.log("Camera texture:", window.webGPUApp.camTex);
-        console.log("Atlas texture:", window.webGPUApp.atlasTex);
+    if (window.renderer && window.renderer.device) {
+        console.log("Camera texture:", window.renderer.camTex);
+        console.log("Atlas texture:", window.renderer.atlasTex);
         
         // Check if textures have valid dimensions
-        if (window.webGPUApp.camTex) {
-            console.log("Camera texture dimensions:", window.webGPUApp.camTex.width, "x", window.webGPUApp.camTex.height);
+        if (window.renderer.camTex) {
+            console.log("Camera texture dimensions:", window.renderer.camTex.width, "x", window.renderer.camTex.height);
         }
-        if (window.webGPUApp.atlasTex) {
-            console.log("Atlas texture dimensions:", window.webGPUApp.atlasTex.width, "x", window.webGPUApp.atlasTex.height);
+        if (window.renderer.atlasTex) {
+            console.log("Atlas texture dimensions:", window.renderer.atlasTex.width, "x", window.renderer.atlasTex.height);
         }
     }
 }
@@ -72,29 +72,29 @@ export function snapshotCanvas(): void {
 
 export function debugRenderState(): void {
     console.log("🔍 === RENDER STATE DEBUG ===");
-    if (window.webGPUApp) {
-        console.log("Current uniforms:", window.webGPUApp.uniforms);
-        console.log("Current dimensions:", window.webGPUApp.settings.width, "x", window.webGPUApp.settings.height);
-        console.log("Current contrast:", window.webGPUApp.settings.contrast);
-        console.log("Current edge bias:", window.webGPUApp.settings.edgeBias);
-        console.log("Current invert:", window.webGPUApp.settings.invert);
+    if (window.renderer) {
+        console.log("Current uniforms:", window.renderer.uniforms);
+        console.log("Current dimensions:", window.renderer.settings.width, "x", window.renderer.settings.height);
+        console.log("Current contrast:", window.renderer.settings.contrast);
+        console.log("Current edge bias:", window.renderer.settings.edgeBias);
+        console.log("Current invert:", window.renderer.settings.invert);
     }
 }
 
 export function validateWebGPUPipeline(): void {
     console.log("🔍 === WEBGPU PIPELINE VALIDATION ===");
-    if (window.webGPUApp) {
-        const app: WebGPUApp = window.webGPUApp;
-        console.log("Device:", app.device);
-        console.log("Compute pipeline:", app.computePipeline);
-        console.log("Render pipeline:", app.renderPipeline);
-        console.log("Bind groups:", app.computeBindGroup, app.renderBindGroup);
+    if (window.renderer) {
+        const renderer: ASCIIRenderer = window.renderer;
+        console.log("Device:", renderer.device);
+        console.log("Compute pipeline:", renderer.computePipeline);
+        console.log("Render pipeline:", renderer.renderPipeline);
+        console.log("Bind groups:", renderer.computeBindGroup, renderer.renderBindGroup);
         
         // Check if all required components exist
-        const hasDevice: boolean = !!app.device;
-        const hasComputePipeline: boolean = !!app.computePipeline;
-        const hasRenderPipeline: boolean = !!app.renderPipeline;
-        const hasBindGroups: boolean = !!(app.computeBindGroup && app.renderBindGroup);
+        const hasDevice: boolean = !!renderer.device;
+        const hasComputePipeline: boolean = !!renderer.computePipeline;
+        const hasRenderPipeline: boolean = !!renderer.renderPipeline;
+        const hasBindGroups: boolean = !!(renderer.computeBindGroup && renderer.renderBindGroup);
         
         console.log("Pipeline validation:", {
             device: hasDevice ? "✅" : "❌",
@@ -145,8 +145,8 @@ export function testCanvasDrawing(): void {
 
 export function debugWebGPUBuffers(): void {
     console.log("🔍 === WEBGPU BUFFER DEBUG ===");
-    if (window.webGPUApp) {
-        const app = window.webGPUApp;
+    if (window.renderer) {
+        const app = window.renderer;
         
         // Check uniform buffer
         if (app.uniforms) {
@@ -165,8 +165,8 @@ export function debugWebGPUBuffers(): void {
 
 export function debugShaderResources(): void {
     console.log("🔍 === SHADER RESOURCES DEBUG ===");
-    if (window.webGPUApp) {
-        const app = window.webGPUApp;
+    if (window.renderer) {
+        const app = window.renderer;
         
         // Check textures
         console.log("Camera texture:", {
@@ -189,8 +189,8 @@ export function debugShaderResources(): void {
 
 export function testShaderCompilation(): void {
     console.log("🔍 === SHADER COMPILATION TEST ===");
-    if (window.webGPUApp && window.webGPUApp.device) {
-        const device = window.webGPUApp.device;
+    if (window.renderer && window.renderer.device) {
+        const device = window.renderer.device;
         
         // Test compute shader
         try {
@@ -253,7 +253,7 @@ export function screenshotCanvas(): void {
             return;
         }
         // 0) Dump current ASCII state
-        const ascii = await window.webGPUApp?.dumpASCIIMask();
+        const ascii = await window.renderer?.dumpASCIIMask();
 
         // 1) Save screenshot as raw blob
         const res1 = await fetch('/debug/save-screenshot', { method: 'POST', body: blob });

@@ -1,4 +1,4 @@
-import type { WebGPUApp } from './webgpu';
+import type { ASCIIRenderer } from './engine/ASCIIRenderer';
 
 export interface AppControls {
   hideLoading: () => void;
@@ -24,7 +24,7 @@ interface Navigator {
 // Extend Window interface with custom properties
 declare global {
   interface Window {
-    webGPUApp: WebGPUApp;
+    renderer: ASCIIRenderer;
     appControls: {
       hideLoading: () => void;
       updateStatus: (msg: string) => void;

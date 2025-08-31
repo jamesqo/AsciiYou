@@ -1,5 +1,3 @@
-// Use global WebGPUApp and AppControls interfaces from types.d.ts
-
 import { Ramps, AtlasInfo, DefaultSettings } from '../util/constants';
 
 export class UserSettings {
@@ -11,7 +9,7 @@ export class UserSettings {
     atlas: string = DefaultSettings.ATLAS;
 }
 
-export class WebGPUApp {
+export class ASCIIRenderer {
     settings!: UserSettings;
 
     device!: GPUDevice;
@@ -119,8 +117,8 @@ export class WebGPUApp {
 
     private constructor() {}
 
-    static async initialize(canvas: HTMLCanvasElement, video: HTMLVideoElement): Promise<WebGPUApp> {
-        const app = new WebGPUApp();
+    static async initialize(canvas: HTMLCanvasElement, video: HTMLVideoElement): Promise<ASCIIRenderer> {
+        const app = new ASCIIRenderer();
 
         const adapter: GPUAdapter | null = await navigator.gpu.requestAdapter();
         if (!adapter) throw new Error("WebGPU not supported. Please use a modern browser with WebGPU support.");

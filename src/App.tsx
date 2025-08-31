@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { WebGPUApp } from './engine/webgpu'
+import { ASCIIRenderer } from './engine/ASCIIRenderer'
 import { DefaultSettings } from './util/constants'
 import {
     attachDebugShortcuts,
@@ -19,7 +19,7 @@ import type { DebugTools } from './types'
 export default function App() {
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
     const videoRef = useRef<HTMLVideoElement | null>(null)
-    const appRef = useRef<WebGPUApp | null>(null)
+    const appRef = useRef<ASCIIRenderer | null>(null)
 
     const [width, setWidth] = useState<number>(DefaultSettings.WIDTH)
     const [height, setHeight] = useState<number>(DefaultSettings.HEIGHT)
@@ -38,10 +38,10 @@ export default function App() {
                 await video.play()
                 if (cancelled) return
 
-                const app = await WebGPUApp.initialize(canvas, video)
-                window.webGPUApp = app
-                appRef.current = app
-                await app.run()
+                const renderer = await ASCIIRenderer.initialize(canvas, video)
+                window.renderer = renderer
+                appRef.current = renderer
+                await renderer.run()
             } catch (e) {
                 console.error('❌ init error', e)
             }

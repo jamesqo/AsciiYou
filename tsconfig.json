@@ -14,7 +14,10 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "types": ["@webgpu/types"]
+    "types": [
+      "@webgpu/types",
+      "vite/client"
+    ]
   },
   "include": [
     "**/*.ts",

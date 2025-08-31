@@ -1,6 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { WebGPUApp } from './webgpu'
 import { DefaultSettings } from './constants'
+import {
+    attachDebugShortcuts,
+    debugCanvas,
+    debugRenderState,
+    debugShaderResources,
+    debugTextures,
+    fullDebug,
+    screenshotCanvas,
+    snapshotCanvas,
+    testCanvasDrawing,
+    debugWebGPUBuffers,
+    validateWebGPUPipeline
+} from './util/debugHelpers'
+import type { DebugTools } from './types'
 
 export default function App() {
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -14,18 +28,18 @@ export default function App() {
     const [invert, setInvert] = useState<boolean>(!!DefaultSettings.INVERT)
 
     useEffect(() => {
-        let cancelled = false
-        ;(async () => {
+        let cancelled = false;
+        (async () => {
             const video = videoRef.current!
             const canvas = canvasRef.current!
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
-                ;(video as any).srcObject = stream
+                video.srcObject = stream
                 await video.play()
                 if (cancelled) return
 
                 const app = await WebGPUApp.initialize(canvas, video)
-                ;(window as any).webGPUApp = app
+                window.webGPUApp = app
                 appRef.current = app
                 await app.run()
             } catch (e) {
@@ -33,6 +47,24 @@ export default function App() {
             }
         })()
         return () => { cancelled = true }
+    }, [])
+
+    // Dev-only: wire debug tools with lifecycle-friendly shortcuts (no window any casts)
+    useEffect(() => {
+        if (!import.meta.env.DEV) return
+        const tools: DebugTools = {
+            debugCanvas,
+            debugTextures,
+            snapshotCanvas,
+            debugRenderState,
+            validateWebGPUPipeline,
+            testCanvasDrawing,
+            fullDebug,
+            screenshotCanvas
+        }
+        window.debugTools = tools
+        const detach = attachDebugShortcuts(tools)
+        return () => detach()
     }, [])
 
     useEffect(() => {
@@ -78,7 +110,7 @@ export default function App() {
                 </div>
             </div>
 
-            <video id="cam" ref={videoRef} autoPlay playsInline style={{ display: 'none' }} />
+            <video id="cam" ref={videoRef} autoPlay playsInline />
             <div className="canvas-container">
                 <canvas id="gfx" ref={canvasRef} width={1280} height={720} />
             </div>

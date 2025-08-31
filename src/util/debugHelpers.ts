@@ -1,6 +1,7 @@
-import type { WebGPUApp } from "./webgpu";
+import type { WebGPUApp } from "../webgpu";
+import type { DebugTools } from '../types'
 
-function debugCanvas(): void {
+export function debugCanvas(): void {
     console.log("🔍 === CANVAS DEBUG ===");
     const canvas: HTMLCanvasElement | null = document.getElementById('gfx') as HTMLCanvasElement;
     if (!canvas) {
@@ -17,7 +18,7 @@ function debugCanvas(): void {
     console.log("Canvas z-index:", getComputedStyle(canvas).zIndex);
 }
 
-function debugTextures(): void {
+export function debugTextures(): void {
     console.log("🔍 === TEXTURE DEBUG ===");
     if (window.webGPUApp && window.webGPUApp.device) {
         console.log("Camera texture:", window.webGPUApp.camTex);
@@ -33,7 +34,7 @@ function debugTextures(): void {
     }
 }
 
-function snapshotCanvas(): void {
+export function snapshotCanvas(): void {
     console.log("📸 === CANVAS SNAPSHOT ===");
     const canvas: HTMLCanvasElement | null = document.getElementById('gfx') as HTMLCanvasElement;
     if (!canvas) {
@@ -69,7 +70,7 @@ function snapshotCanvas(): void {
     console.log("Canvas has dimensions:", hasContent);
 }
 
-function debugRenderState(): void {
+export function debugRenderState(): void {
     console.log("🔍 === RENDER STATE DEBUG ===");
     if (window.webGPUApp) {
         console.log("Current uniforms:", window.webGPUApp.uniforms);
@@ -80,7 +81,7 @@ function debugRenderState(): void {
     }
 }
 
-function validateWebGPUPipeline(): void {
+export function validateWebGPUPipeline(): void {
     console.log("🔍 === WEBGPU PIPELINE VALIDATION ===");
     if (window.webGPUApp) {
         const app: WebGPUApp = window.webGPUApp;
@@ -104,7 +105,7 @@ function validateWebGPUPipeline(): void {
     }
 }
 
-function testCanvasDrawing(): void {
+export function testCanvasDrawing(): void {
     console.log("🎨 === TESTING CANVAS DRAWING ===");
     const canvas: HTMLCanvasElement | null = document.getElementById('gfx') as HTMLCanvasElement;
     if (!canvas) {
@@ -142,7 +143,7 @@ function testCanvasDrawing(): void {
     }
 }
 
-function debugWebGPUBuffers(): void {
+export function debugWebGPUBuffers(): void {
     console.log("🔍 === WEBGPU BUFFER DEBUG ===");
     if (window.webGPUApp) {
         const app = window.webGPUApp;
@@ -162,7 +163,7 @@ function debugWebGPUBuffers(): void {
     }
 }
 
-function debugShaderResources(): void {
+export function debugShaderResources(): void {
     console.log("🔍 === SHADER RESOURCES DEBUG ===");
     if (window.webGPUApp) {
         const app = window.webGPUApp;
@@ -186,14 +187,14 @@ function debugShaderResources(): void {
     }
 }
 
-function testShaderCompilation(): void {
+export function testShaderCompilation(): void {
     console.log("🔍 === SHADER COMPILATION TEST ===");
     if (window.webGPUApp && window.webGPUApp.device) {
         const device = window.webGPUApp.device;
         
         // Test compute shader
         try {
-            const computeResponse = fetch('shaders/compute.wgsl');
+            const computeResponse = fetch('src/shaders/compute.wgsl');
             computeResponse.then(response => response.text()).then(code => {
                 try {
                     const module = device.createShaderModule({ code });
@@ -209,7 +210,7 @@ function testShaderCompilation(): void {
         
         // Test render shader
         try {
-            const renderResponse = fetch('shaders/render.wgsl');
+            const renderResponse = fetch('src/shaders/render.wgsl');
             renderResponse.then(response => response.text()).then(code => {
                 try {
                     const module = device.createShaderModule({ code });
@@ -225,7 +226,7 @@ function testShaderCompilation(): void {
     }
 }
 
-function fullDebug(): void {
+export function fullDebug(): void {
     console.log("🔍 === FULL DEBUG ===");
     debugCanvas();
     debugTextures();
@@ -237,7 +238,7 @@ function fullDebug(): void {
     testShaderCompilation();
 }
 
-function screenshotCanvas(): void {
+export function screenshotCanvas(): void {
     console.log("📸 === CANVAS SCREENSHOT ===");
     const canvas: HTMLCanvasElement | null = document.getElementById('gfx') as HTMLCanvasElement;
     if (!canvas) {
@@ -270,44 +271,13 @@ function screenshotCanvas(): void {
 }
 
 // Set up keyboard shortcuts
-function setupDebugShortcuts(): void {
-    document.addEventListener('keydown', (e: KeyboardEvent) => {
-        if (e.key === 'd') {
-            fullDebug();
-        }
-    });
-    
-    document.addEventListener('keydown', (e: KeyboardEvent) => {
-        if (e.key === 't') {
-            testCanvasDrawing();
-        }
-    });
-    
-    document.addEventListener('keydown', (e: KeyboardEvent) => {
-        if (e.key === 's') {
-            screenshotCanvas();
-        }
-    });
+export function attachDebugShortcuts(tools: DebugTools): () => void {
+    const onKey = (e: KeyboardEvent) => {
+        if (e.key === 'd') tools.fullDebug();
+        if (e.key === 't') tools.testCanvasDrawing();
+        if (e.key === 's') tools.screenshotCanvas();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
 }
 
-// Make functions globally available
-window.debugTools = {
-    debugCanvas,
-    debugTextures,
-    snapshotCanvas,
-    debugRenderState,
-    validateWebGPUPipeline,
-    testCanvasDrawing,
-    fullDebug,
-    screenshotCanvas
-};
-
-// Auto-setup shortcuts when DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', setupDebugShortcuts);
-} else {
-    setupDebugShortcuts();
-}
-
-console.log("🔧 Debug functions loaded. Press 'D' for debug, 'T' for test drawing");
-console.log("🔧 Debug functions also available via window.debugTools");

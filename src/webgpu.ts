@@ -258,8 +258,8 @@ export class WebGPUApp {
 
     private async loadShaders(): Promise<{ computeWGSL: string; renderWGSL: string; }> {
         const [computeResponse, renderResponse] = await Promise.all([
-            fetch('shaders/compute.wgsl'),
-            fetch('shaders/render.wgsl')
+            fetch('src/shaders/compute.wgsl'),
+            fetch('src/shaders/render.wgsl')
         ]);
         if (!computeResponse.ok) throw new Error(`Failed to load compute shader: ${computeResponse.status}`);
         if (!renderResponse.ok) throw new Error(`Failed to load render shader: ${renderResponse.status}`);

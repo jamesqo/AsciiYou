@@ -1,11 +1,11 @@
 import type { WebGPUApp } from './webgpu';
 
-interface AppControls {
+export interface AppControls {
   hideLoading: () => void;
   updateStatus: (msg: string) => void;
 }
 
-interface DebugTools {
+export interface DebugTools {
   debugCanvas: () => void;
   debugTextures: () => void;
   snapshotCanvas: () => void;

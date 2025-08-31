@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { WebGPUApp } from './webgpu'
-import { DefaultSettings } from './constants'
+import { WebGPUApp } from './engine/webgpu'
+import { DefaultSettings } from './util/constants'
 import {
     attachDebugShortcuts,
     debugCanvas,

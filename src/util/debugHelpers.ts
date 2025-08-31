@@ -1,4 +1,4 @@
-import type { WebGPUApp } from "../webgpu";
+import type { WebGPUApp } from "../engine/webgpu";
 import type { DebugTools } from '../types'
 
 export function debugCanvas(): void {

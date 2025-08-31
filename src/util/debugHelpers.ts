@@ -74,10 +74,10 @@ export function debugRenderState(): void {
     console.log("🔍 === RENDER STATE DEBUG ===");
     if (window.renderer) {
         console.log("Current uniforms:", window.renderer.uniforms);
-        console.log("Current dimensions:", window.renderer.settings.width, "x", window.renderer.settings.height);
-        console.log("Current contrast:", window.renderer.settings.contrast);
-        console.log("Current edge bias:", window.renderer.settings.edgeBias);
-        console.log("Current invert:", window.renderer.settings.invert);
+        console.log("Current dimensions:", window.renderer.outW, "x", window.renderer.outH);
+        console.log("Current contrast:", window.renderer.contrast);
+        console.log("Current edge bias:", window.renderer.edgeBias);
+        console.log("Current invert:", window.renderer.invert);
     }
 }
 

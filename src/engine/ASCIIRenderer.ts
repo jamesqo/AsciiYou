@@ -1,16 +1,13 @@
 import { Ramps, AtlasInfo, DefaultSettings } from '../util/constants';
 
-export class UserSettings {
-    width: number = DefaultSettings.WIDTH;
-    height: number = DefaultSettings.HEIGHT;
+export class ASCIIRenderer {
+    // Inlined settings (renamed width/height -> outW/outH)
+    outW: number = DefaultSettings.WIDTH;
+    outH: number = DefaultSettings.HEIGHT;
     contrast: number = DefaultSettings.CONTRAST;
     edgeBias: number = DefaultSettings.EDGE_BIAS;
     invert: number = DefaultSettings.INVERT;
     atlas: string = DefaultSettings.ATLAS;
-}
-
-export class ASCIIRenderer {
-    settings!: UserSettings;
 
     device!: GPUDevice;
     atlasTex!: GPUTexture;
@@ -68,7 +65,7 @@ export class ASCIIRenderer {
     }
 
     public async dumpIndexBuffer(): Promise<Uint32Array> {
-        const numCells = this.settings.width * this.settings.height;
+        const numCells = this.outW * this.outH;
         const byteSize = numCells * 4;
 
         // Create a staging buffer to copy the index buffer to, then
@@ -101,8 +98,8 @@ export class ASCIIRenderer {
     public async dumpASCIIMask(): Promise<string> {
         const indices = Array.from(await this.dumpIndexBuffer());
         const chars = indices.map(i => Ramps.DENSE[i]);
-        const cols = this.settings.width;
-        const rows = this.settings.height;
+        const cols = this.outW;
+        const rows = this.outH;
         let out = '';
         for (let r = 0; r < rows; r++) {
             const start = r * cols;
@@ -124,7 +121,7 @@ export class ASCIIRenderer {
         if (!adapter) throw new Error("WebGPU not supported. Please use a modern browser with WebGPU support.");
 
         renderer.device = await adapter.requestDevice();
-        renderer.settings = new UserSettings();
+        // settings inlined; fields initialized by defaults above
 
         // Install debug/error handlers early
         renderer.setupErrorHandlers();
@@ -134,7 +131,7 @@ export class ASCIIRenderer {
         renderer.video = video;
 
         // Resources
-        renderer.atlasTex = await renderer.createAtlasTexture(renderer.settings.atlas);
+        renderer.atlasTex = await renderer.createAtlasTexture(renderer.atlas);
         renderer.camTex = await renderer.createCamTexture();
         renderer.uniforms = await renderer.createUniforms();
         renderer.indexBuffer = renderer.createIndexBuffer();
@@ -149,7 +146,7 @@ export class ASCIIRenderer {
     }
 
     private createIndexBuffer(): GPUBuffer {
-        const numCells = this.settings.width * this.settings.height;
+        const numCells = this.outW * this.outH;
         // Shared buffer for compute (write) and render (read)
         return this.device.createBuffer({
             size: numCells * 4,
@@ -236,11 +233,11 @@ export class ASCIIRenderer {
 
     private async createUniforms(): Promise<GPUBuffer> {
         const data = new Float32Array([
-            this.settings.width,
-            this.settings.height,
-            this.settings.edgeBias,
-            this.settings.contrast,
-            this.settings.invert,
+            this.outW,
+            this.outH,
+            this.edgeBias,
+            this.contrast,
+            this.invert,
             this.cols,
             this.rows,
             Ramps.DENSE.length,
@@ -351,7 +348,7 @@ export class ASCIIRenderer {
         pass.label = 'pass/compute';
         pass.setPipeline(this.computePipeline);
         pass.setBindGroup(0, this.computeBindGroup);
-        pass.dispatchWorkgroups(Math.ceil(this.settings.width / 16), Math.ceil(this.settings.height / 16));
+        pass.dispatchWorkgroups(Math.ceil(this.outW / 16), Math.ceil(this.outH / 16));
         pass.end();
     }
 
@@ -401,11 +398,11 @@ export class ASCIIRenderer {
 
     async updateUniforms(): Promise<void> {
         const data = new Float32Array([
-            this.settings.width,
-            this.settings.height,
-            this.settings.edgeBias,
-            this.settings.contrast,
-            this.settings.invert,
+            this.outW,
+            this.outH,
+            this.edgeBias,
+            this.contrast,
+            this.invert,
             this.cols,
             this.rows,
             Ramps.DENSE.length,

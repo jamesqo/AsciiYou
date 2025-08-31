@@ -19,11 +19,11 @@ export class UIStore {
       () => {
         const r = this.renderer
         if (!r) return
-        r.settings.width = this.width
-        r.settings.height = this.height
-        r.settings.contrast = this.contrast
-        r.settings.edgeBias = this.edgeBias
-        r.settings.invert = this.invert ? 1.0 : 0.0
+        r.outW = this.width
+        r.outH = this.height
+        r.contrast = this.contrast
+        r.edgeBias = this.edgeBias
+        r.invert = this.invert ? 1.0 : 0.0
         r.updateUniforms().catch(console.error)
       },
       { fireImmediately: false }

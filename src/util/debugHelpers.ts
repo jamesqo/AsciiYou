@@ -146,18 +146,18 @@ export function testCanvasDrawing(): void {
 export function debugWebGPUBuffers(): void {
     console.log("🔍 === WEBGPU BUFFER DEBUG ===");
     if (window.renderer) {
-        const app = window.renderer;
+        const renderer = window.renderer;
         
         // Check uniform buffer
-        if (app.uniforms) {
-            console.log("Uniforms buffer:", app.uniforms);
-            console.log("Uniforms size:", app.uniforms.size);
-            console.log("Uniforms usage:", app.uniforms.usage);
+        if (renderer.uniforms) {
+            console.log("Uniforms buffer:", renderer.uniforms);
+            console.log("Uniforms size:", renderer.uniforms.size);
+            console.log("Uniforms usage:", renderer.uniforms.usage);
         }
         
         // Check if we have access to other buffers
         console.log("Available buffers:", {
-            uniforms: !!app.uniforms,
+            uniforms: !!renderer.uniforms,
             // Add other buffers as they become available
         });
     }
@@ -166,23 +166,23 @@ export function debugWebGPUBuffers(): void {
 export function debugShaderResources(): void {
     console.log("🔍 === SHADER RESOURCES DEBUG ===");
     if (window.renderer) {
-        const app = window.renderer;
+        const renderer = window.renderer;
         
         // Check textures
         console.log("Camera texture:", {
-            exists: !!app.camTex,
-            width: app.camTex?.width,
-            height: app.camTex?.height,
-            format: app.camTex?.format,
-            usage: app.camTex?.usage
+            exists: !!renderer.camTex,
+            width: renderer.camTex?.width,
+            height: renderer.camTex?.height,
+            format: renderer.camTex?.format,
+            usage: renderer.camTex?.usage
         });
         
         console.log("Atlas texture:", {
-            exists: !!app.atlasTex,
-            width: app.atlasTex?.width,
-            height: app.atlasTex?.height,
-            format: app.atlasTex?.format,
-            usage: app.atlasTex?.usage
+            exists: !!renderer.atlasTex,
+            width: renderer.atlasTex?.width,
+            height: renderer.atlasTex?.height,
+            format: renderer.atlasTex?.format,
+            usage: renderer.atlasTex?.usage
         });
     }
 }

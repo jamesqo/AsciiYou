@@ -118,34 +118,34 @@ export class ASCIIRenderer {
     private constructor() {}
 
     static async initialize(canvas: HTMLCanvasElement, video: HTMLVideoElement): Promise<ASCIIRenderer> {
-        const app = new ASCIIRenderer();
+        const renderer = new ASCIIRenderer();
 
         const adapter: GPUAdapter | null = await navigator.gpu.requestAdapter();
         if (!adapter) throw new Error("WebGPU not supported. Please use a modern browser with WebGPU support.");
 
-        app.device = await adapter.requestDevice();
-        app.settings = new UserSettings();
+        renderer.device = await adapter.requestDevice();
+        renderer.settings = new UserSettings();
 
         // Install debug/error handlers early
-        app.setupErrorHandlers();
+        renderer.setupErrorHandlers();
 
         // Configure canvas & video
-        app.configureCanvas(canvas);
-        app.video = video;
+        renderer.configureCanvas(canvas);
+        renderer.video = video;
 
         // Resources
-        app.atlasTex = await app.createAtlasTexture(app.settings.atlas);
-        app.camTex = await app.createCamTexture();
-        app.uniforms = await app.createUniforms();
-        app.indexBuffer = app.createIndexBuffer();
+        renderer.atlasTex = await renderer.createAtlasTexture(renderer.settings.atlas);
+        renderer.camTex = await renderer.createCamTexture();
+        renderer.uniforms = await renderer.createUniforms();
+        renderer.indexBuffer = renderer.createIndexBuffer();
 
         // Pipelines & bind groups
-        app.computePipeline = await app.createComputePipeline();
-        app.renderPipeline = await app.createRenderPipeline();
-        app.computeBindGroup = await app.createComputeBindGroup();
-        app.renderBindGroup = await app.createRenderBindGroup();
+        renderer.computePipeline = await renderer.createComputePipeline();
+        renderer.renderPipeline = await renderer.createRenderPipeline();
+        renderer.computeBindGroup = await renderer.createComputeBindGroup();
+        renderer.renderBindGroup = await renderer.createRenderBindGroup();
 
-        return app;
+        return renderer;
     }
 
     private createIndexBuffer(): GPUBuffer {

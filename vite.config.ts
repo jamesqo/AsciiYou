@@ -81,5 +81,10 @@ export default defineConfig({
   },
   optimizeDeps: {
     exclude: ['@webgpu/types']
-  }
+  },
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
 })

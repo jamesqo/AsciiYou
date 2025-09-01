@@ -1,13 +1,17 @@
-import { Ramps, AtlasInfo, DefaultSettings } from '../util/constants';
+import { appConfig } from '@/config/appConfig';
+import type { UserSettings } from '@/types';
 
-export class ASCIIRenderer {
-    // Inlined settings (renamed width/height -> outW/outH)
-    outW: number = DefaultSettings.WIDTH;
-    outH: number = DefaultSettings.HEIGHT;
-    contrast: number = DefaultSettings.CONTRAST;
-    edgeBias: number = DefaultSettings.EDGE_BIAS;
-    invert: number = DefaultSettings.INVERT;
-    atlas: string = DefaultSettings.ATLAS;
+const { atlasInfo, defaultSettings } = appConfig;
+const RAMP = atlasInfo.ramp;
+
+export class ASCIIRenderer implements UserSettings {
+    
+    outW: number = defaultSettings.outW;
+    outH: number = defaultSettings.outH;
+    contrast: number = defaultSettings.contrast;
+    edgeBias: number = defaultSettings.edgeBias;
+    invert: number = defaultSettings.invert;
+    atlas: string = defaultSettings.atlas;
 
     device!: GPUDevice;
     atlasTex!: GPUTexture;
@@ -97,7 +101,7 @@ export class ASCIIRenderer {
 
     public async dumpASCIIMask(): Promise<string> {
         const indices = Array.from(await this.dumpIndexBuffer());
-        const chars = indices.map(i => Ramps.DENSE[i]);
+        const chars = indices.map(i => RAMP[i]);
         const cols = this.outW;
         const rows = this.outH;
         let out = '';
@@ -177,11 +181,11 @@ export class ASCIIRenderer {
 
     // TODO remove 'any'
     private async loadAtlasBitmap(atlasType: string): Promise<any> {
-        const cols = AtlasInfo.NUM_COLS;
-        const rows = AtlasInfo.NUM_ROWS;
-        const cellW = AtlasInfo.CELL_W;
-        const cellH = AtlasInfo.CELL_H;
-        const path = AtlasInfo.ATLAS_PATH;
+        const cols = atlasInfo.numCols;
+        const rows = atlasInfo.numRows;
+        const cellW = atlasInfo.cellW;
+        const cellH = atlasInfo.cellH;
+        const path = atlasInfo.path;
 
         const res = await fetch(path);
         if (!res.ok) throw new Error(`Failed to load ${atlasType} atlas: ${res.status}`);
@@ -240,7 +244,7 @@ export class ASCIIRenderer {
             this.invert,
             this.cols,
             this.rows,
-            Ramps.DENSE.length,
+            RAMP.length,
             this.cellW,
             this.cellH,
             this.atlasWidth,
@@ -405,7 +409,7 @@ export class ASCIIRenderer {
             this.invert,
             this.cols,
             this.rows,
-            Ramps.DENSE.length,
+            RAMP.length,
             this.cellW,
             this.cellH,
             this.atlasTex.width,

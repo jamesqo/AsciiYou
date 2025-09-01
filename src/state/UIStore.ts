@@ -1,13 +1,13 @@
 import { makeAutoObservable, reaction } from 'mobx'
-import { DefaultSettings } from '../util/constants'
+import { appConfig } from '../config/appConfig'
 import type { ASCIIRenderer } from '../engine/ASCIIRenderer'
 
 export class UIStore {
-  width = DefaultSettings.WIDTH
-  height = DefaultSettings.HEIGHT
-  contrast = DefaultSettings.CONTRAST
-  edgeBias = DefaultSettings.EDGE_BIAS
-  invert = !!DefaultSettings.INVERT
+  width = appConfig.defaultSettings.outW
+  height = appConfig.defaultSettings.outH
+  contrast = appConfig.defaultSettings.contrast
+  edgeBias = appConfig.defaultSettings.edgeBias
+  invert = !!appConfig.defaultSettings.invert
 
   private renderer: ASCIIRenderer | null = null
   private disposeReaction?: () => void

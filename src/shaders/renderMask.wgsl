@@ -37,7 +37,7 @@ fn fs_main(in: VSOut) -> @location(0) vec4<f32> {
   let frac = fract(px);
 
   // Atlas tile for index i
-  let cols = u32(U.cols);
+  let cols = u32(U.atlasCols);
   let u = i % cols;
   let v = i / cols;
 

@@ -194,7 +194,7 @@ export function testShaderCompilation(): void {
         
         // Test compute shader
         try {
-            const computeResponse = fetch('src/shaders/compute.wgsl');
+            const computeResponse = fetch('src/shaders/computeMask.wgsl');
             computeResponse.then(response => response.text()).then(code => {
                 try {
                     const module = device.createShaderModule({ code });
@@ -210,7 +210,7 @@ export function testShaderCompilation(): void {
         
         // Test render shader
         try {
-            const renderResponse = fetch('src/shaders/render.wgsl');
+            const renderResponse = fetch('src/shaders/renderMask.wgsl');
             renderResponse.then(response => response.text()).then(code => {
                 try {
                     const module = device.createShaderModule({ code });

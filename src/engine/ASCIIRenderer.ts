@@ -5,6 +5,8 @@ const { atlasInfo, defaultSettings } = appConfig;
 const RAMP = atlasInfo.ramp;
 
 export class ASCIIRenderer implements UserSettings {
+
+    // User-configurable settings (can be changed)
     
     outW: number = defaultSettings.outW;
     outH: number = defaultSettings.outH;
@@ -13,15 +15,20 @@ export class ASCIIRenderer implements UserSettings {
     invert: number = defaultSettings.invert;
     atlas: string = defaultSettings.atlas;
 
+    // Atlas settings
+
+    atlasCols!: number;
+    atlasRows!: number;
+    cellW!: number;
+    cellH!: number;
+
+    // GPU resources
+
     device!: GPUDevice;
     atlasTex!: GPUTexture;
     camTex!: GPUTexture;
 
     uniforms!: GPUBuffer;
-    cols!: number;
-    rows!: number;
-    cellW!: number;
-    cellH!: number;
 
     computePipeline!: GPUComputePipeline;
     renderPipeline!: GPURenderPipeline;
@@ -201,8 +208,8 @@ export class ASCIIRenderer implements UserSettings {
             { texture: atlasTex, mipLevel: 0 },
             [bitmap.width, bitmap.height]
         );
-        this.cols = cols;
-        this.rows = rows;
+        this.atlasCols = cols;
+        this.atlasRows = rows;
         this.cellW = cellW;
         this.cellH = cellH;
         return atlasTex;
@@ -236,8 +243,8 @@ export class ASCIIRenderer implements UserSettings {
             this.edgeBias,
             this.contrast,
             this.invert,
-            this.cols,
-            this.rows,
+            this.atlasCols,
+            this.atlasRows,
             RAMP.length,
             this.cellW,
             this.cellH,
@@ -401,8 +408,8 @@ export class ASCIIRenderer implements UserSettings {
             this.edgeBias,
             this.contrast,
             this.invert,
-            this.cols,
-            this.rows,
+            this.atlasCols,
+            this.atlasRows,
             RAMP.length,
             this.cellW,
             this.cellH,
@@ -421,8 +428,8 @@ export class ASCIIRenderer implements UserSettings {
             { texture: this.atlasTex },
             [this.atlasTex.width, this.atlasTex.height]
         );
-        this.cols = cols;
-        this.rows = rows;
+        this.atlasCols = cols;
+        this.atlasRows = rows;
         await this.updateUniforms();
     }
 }

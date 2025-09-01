@@ -21,7 +21,7 @@ fn vs_main(@builtin(vertex_index) vi: u32) -> VSOut {
 
 struct Uniforms {
   outW: f32, outH: f32, edgeBias: f32, contrast: f32, invert: f32,
-  cols: f32, rows: f32, rampLen: f32, cellW: f32, cellH: f32, atlasW: f32, atlasH: f32,
+  atlasCols: f32, atlasRows: f32, rampLen: f32, cellW: f32, cellH: f32, atlasW: f32, atlasH: f32,
 };
 
 @fragment

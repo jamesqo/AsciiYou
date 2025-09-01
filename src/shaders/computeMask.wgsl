@@ -40,6 +40,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   let gx = L[0][0] + 2.0*L[1][0] + L[2][0] - L[0][2] - 2.0*L[1][2] - L[2][2];
   let gy = L[0][0] + 2.0*L[0][1] + L[0][2] - L[2][0] - 2.0*L[2][1] - L[2][2];
   let edge = abs(gx) + abs(gy); // L1 norm for faster computation
+  // TODO try out L2 norm and see if that's any more accurate?
 
   // Luminance at center
   var lum: f32 = L[1][1];

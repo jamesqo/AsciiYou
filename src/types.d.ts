@@ -1,4 +1,4 @@
-import type { ASCIIRenderer } from './engine/ASCIIRenderer';
+import type { ASCIIRenderer } from '@/engine/ASCIIRenderer';
 
 export interface AtlasInfo {
   cellW: number;

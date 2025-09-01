@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react'
-import { ASCIIRenderer } from './engine/ASCIIRenderer'
+import { ASCIIRenderer } from '@/engine/ASCIIRenderer'
 import {
     attachDebugShortcuts,
     debugCanvas,
@@ -12,11 +12,11 @@ import {
     testCanvasDrawing,
     debugWebGPUBuffers,
     validateWebGPUPipeline
-} from './util/debugHelpers'
-import type { DebugTools } from './types'
-import { UIProvider } from './state/UIContext'
-import { uiStore } from './state/UIStore'
-import { Controls } from './components/Controls'
+} from '@/util/debugHelpers'
+import type { DebugTools } from '@/types'
+import { UIProvider } from '@/state/UIContext'
+import { uiStore } from '@/state/UIStore'
+import { Controls } from '@/components/Controls'
 
 export default function App() {
     const canvasRef = useRef<HTMLCanvasElement | null>(null)

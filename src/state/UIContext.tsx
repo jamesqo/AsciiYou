@@ -1,5 +1,5 @@
 import React, { createContext, useContext } from 'react'
-import { UIStore, uiStore } from './UIStore'
+import { UIStore, uiStore } from '@/state/UIStore'
 
 const Ctx = createContext<UIStore>(uiStore)
 

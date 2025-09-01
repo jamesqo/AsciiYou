@@ -1,5 +1,5 @@
-import type { ASCIIRenderer } from "../engine/ASCIIRenderer";
-import type { DebugTools } from '../types'
+import type { ASCIIRenderer } from "@/engine/ASCIIRenderer";
+import type { DebugTools } from '@/types'
 
 export function debugCanvas(): void {
     console.log("🔍 === CANVAS DEBUG ===");

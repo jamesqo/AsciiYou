@@ -1,6 +1,6 @@
 import React from 'react'
 import { observer } from 'mobx-react-lite'
-import { useUI } from '../state/UIContext'
+import { useUI } from '@/state/UIContext'
 
 export const Controls = observer(function Controls() {
   const ui = useUI()

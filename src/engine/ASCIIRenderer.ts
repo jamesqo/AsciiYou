@@ -16,8 +16,6 @@ export class ASCIIRenderer implements UserSettings {
     device!: GPUDevice;
     atlasTex!: GPUTexture;
     camTex!: GPUTexture;
-    private atlasWidth!: number;
-    private atlasHeight!: number;
 
     uniforms!: GPUBuffer;
     cols!: number;
@@ -32,7 +30,6 @@ export class ASCIIRenderer implements UserSettings {
     renderBindGroup!: GPUBindGroup;
     private indexBuffer!: GPUBuffer;
 
-    private canvas!: HTMLCanvasElement;
     private ctx!: GPUCanvasContext;
     private format!: GPUTextureFormat;
     private video!: HTMLVideoElement;
@@ -173,7 +170,6 @@ export class ASCIIRenderer implements UserSettings {
     }
 
     private configureCanvas(canvas: HTMLCanvasElement): void {
-        this.canvas = canvas;
         this.ctx = canvas.getContext('webgpu') as GPUCanvasContext;
         this.format = navigator.gpu.getPreferredCanvasFormat();
         this.ctx.configure({ device: this.device, format: this.format, alphaMode: 'opaque' });
@@ -209,8 +205,6 @@ export class ASCIIRenderer implements UserSettings {
         this.rows = rows;
         this.cellW = cellW;
         this.cellH = cellH;
-        this.atlasWidth = bitmap.width;
-        this.atlasHeight = bitmap.height;
         return atlasTex;
     }
 
@@ -247,8 +241,8 @@ export class ASCIIRenderer implements UserSettings {
             RAMP.length,
             this.cellW,
             this.cellH,
-            this.atlasWidth,
-            this.atlasHeight
+            this.atlasTex.width,
+            this.atlasTex.height
         ]);
         const buf = this.device.createBuffer({ size: data.byteLength, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
         this.device.queue.writeBuffer(buf, 0, data as BufferSource);

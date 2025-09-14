@@ -1,6 +1,7 @@
 import { makeAutoObservable, reaction } from 'mobx'
 import { appConfig } from '@/config/appConfig'
 import type { ASCIIRenderer } from '@/engine/ASCIIRenderer'
+import type { RootStore } from '@/stores/RootStore'
 
 export class UIStore {
   width = appConfig.defaultSettings.outW
@@ -40,4 +41,3 @@ export class UIStore {
   destroy() { this.disposeReaction?.(); this.disposeReaction = undefined }
 }
 
-export const uiStore = new UIStore()

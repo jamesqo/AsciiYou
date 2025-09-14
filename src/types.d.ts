@@ -19,6 +19,7 @@ export interface UserSettings {
 }
 
 export interface AppConfig {
+  apiUrl: string;
   atlasInfo: AtlasInfo;
   defaultSettings: UserSettings;
 }

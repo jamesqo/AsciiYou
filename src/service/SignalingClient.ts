@@ -1,0 +1,197 @@
+// signaling/SignalingClient.ts
+import { z } from "zod";
+
+/** ---------- Contracts (share with server) ---------- */
+export const OfferMsg = z.object({
+  type: z.literal("offer"),
+  negotiationId: z.string(),
+  sdp: z.string(),
+});
+export const AnswerMsg = z.object({
+  type: z.literal("answer"),
+  negotiationId: z.string(),
+  sdp: z.string(),
+});
+export const CandidateMsg = z.object({
+  type: z.literal("candidate"),
+  negotiationId: z.string(),
+  candidate: z.object({
+    candidate: z.string(),
+    sdpMLineIndex: z.number().int(),
+  }),
+});
+export const PeerEvent = z.object({
+  type: z.enum(["peer-joined", "peer-left"]),
+  participantId: z.string(),
+});
+export const SignalMsg = z.discriminatedUnion("type", [
+  OfferMsg, AnswerMsg, CandidateMsg, PeerEvent,
+]);
+export type SignalMsg = z.infer<typeof SignalMsg>;
+
+/** ---------- Client ---------- */
+type TokenSupplier = () => Promise<string>; // returns fresh short-lived token
+type UrlBuilder = (roomId: string, token: string) => string; // builds wss://...
+
+type SignalingClientOpts = {
+  roomId: string;
+  getToken: TokenSupplier;
+  buildUrl: UrlBuilder; // e.g. (id, t) => `wss://sig.example.com/rooms/${id}?token=${t}`
+  heartbeatMs?: number; // default 20_000
+  idleTimeoutMs?: number; // server expects a heartbeat before this; default 60_000
+  maxBackoffMs?: number; // default 30_000
+  onOpen?: () => void;
+  onClose?: (ev: CloseEvent) => void;
+  onError?: (err: unknown) => void;
+  onMessage?: (msg: SignalMsg) => void;
+};
+
+export class SignalingClient {
+  private ws?: WebSocket;
+  private opts: Required<SignalingClientOpts>;
+  private backoff = 1000;
+  private hbTimer?: number;
+  private lastSentAt = 0;
+  private closedByUser = false;
+
+  constructor(opts: SignalingClientOpts) {
+    this.opts = {
+      heartbeatMs: 20_000,
+      idleTimeoutMs: 60_000,
+      maxBackoffMs: 30_000,
+      onOpen: () => {},
+      onClose: () => {},
+      onError: () => {},
+      onMessage: () => {},
+      ...opts,
+    };
+  }
+
+  /** Connect (or reconnect) */
+  async connect() {
+    this.closedByUser = false;
+    try {
+      const token = await this.opts.getToken();
+      const url = this.opts.buildUrl(this.opts.roomId, token);
+      this.openSocket(url);
+    } catch (e) {
+      this.opts.onError?.(e);
+      this.scheduleReconnect();
+    }
+  }
+
+  /** Graceful close (no reconnect) */
+  close(code = 1000, reason = "client-close") {
+    this.closedByUser = true;
+    this.clearHeartbeat();
+    this.ws?.close(code, reason);
+    this.ws = undefined;
+  }
+
+  /** Send a validated message (throws if socket not open) */
+  send(msg: SignalMsg) {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      throw new Error("Signaling WS not open");
+    }
+    // Optional: validate before send (dev safety)
+    SignalMsg.parse(msg);
+    this.ws.send(JSON.stringify(msg));
+    this.lastSentAt = Date.now();
+  }
+
+  /** Convenience helpers */
+  sendOffer(sdp: string, negotiationId: string) {
+    this.send({ type: "offer", sdp, negotiationId });
+  }
+  sendAnswer(sdp: string, negotiationId: string) {
+    this.send({ type: "answer", sdp, negotiationId });
+  }
+  sendCandidate(candidate: RTCIceCandidateInit, negotiationId: string) {
+    this.send({
+      type: "candidate",
+      negotiationId,
+      candidate: {
+        candidate: candidate.candidate ?? "",
+        sdpMLineIndex: candidate.sdpMLineIndex ?? 0,
+      },
+    });
+  }
+
+  /** ---------- internals ---------- */
+
+  private openSocket(url: string) {
+    const ws = new WebSocket(url);
+    this.ws = ws;
+
+    ws.onopen = () => {
+      this.backoff = 1000; // reset backoff
+      this.startHeartbeat();
+      this.opts.onOpen?.();
+    };
+
+    ws.onmessage = (ev) => {
+      try {
+        const parsed = JSON.parse(ev.data as string);
+        const msg = SignalMsg.parse(parsed);
+        this.opts.onMessage?.(msg);
+      } catch (e) {
+        this.opts.onError?.(e);
+      }
+    };
+
+    ws.onerror = (ev) => this.opts.onError?.(ev);
+
+    ws.onclose = (ev) => {
+      this.clearHeartbeat();
+      this.opts.onClose?.(ev);
+      this.ws = undefined;
+
+      // If token expired (server can set code 4001/4003), fetch fresh token & reconnect
+      if (!this.closedByUser) this.scheduleReconnect();
+    };
+  }
+
+  private startHeartbeat() {
+    this.clearHeartbeat();
+    const tick = () => {
+      if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+      // Send ping as a no-op app-level message (or use native ping if server supports)
+      // Here we'll piggyback on idle cadence: send only if we've been quiet.
+      const idleFor = Date.now() - this.lastSentAt;
+      if (idleFor > this.opts.heartbeatMs) {
+        // lightweight heartbeat: servers often accept a comment or {"type":"ping"}
+        this.ws.send('{"type":"ping"}');
+        this.lastSentAt = Date.now();
+      }
+      this.hbTimer = window.setTimeout(tick, this.opts.heartbeatMs);
+    };
+    this.hbTimer = window.setTimeout(tick, this.opts.heartbeatMs);
+  }
+
+  private clearHeartbeat() {
+    if (this.hbTimer) {
+      clearTimeout(this.hbTimer);
+      this.hbTimer = undefined;
+    }
+  }
+
+  private async scheduleReconnect() {
+    if (this.closedByUser) return;
+
+    const delay = this.backoff + Math.floor(Math.random() * 250);
+    const capped = Math.min(delay, this.opts.maxBackoffMs);
+    this.backoff = Math.min(this.backoff * 2, this.opts.maxBackoffMs);
+
+    setTimeout(async () => {
+      try {
+        // Refresh token on every reconnect attempt
+        const token = await this.opts.getToken();
+        const url = this.opts.buildUrl(this.opts.roomId, token);
+        this.openSocket(url);
+      } catch (e) {
+        this.opts.onError?.(e);
+        this.scheduleReconnect();
+      }
+    }, capped);
+  }
+}

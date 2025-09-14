@@ -3,6 +3,7 @@ import type { AppConfig } from '../types'
 const RAMP_DENSE = " .'`^\",:;~+_-?|\\/][}{)(tfrxYU0OZ#MW&8B@$";
 
 export const appConfig: AppConfig = {
+    apiUrl: 'http://localhost:3000',
     atlasInfo: {
         cellW: 32,
         cellH: 46,

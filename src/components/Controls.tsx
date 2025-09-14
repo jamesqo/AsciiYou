@@ -1,9 +1,9 @@
 import React from 'react'
 import { observer } from 'mobx-react-lite'
-import { useUI } from '@/state/UIContext'
+import { useStores } from '@/stores/StoreContext'
 
 export const Controls = observer(function Controls() {
-  const ui = useUI()
+  const { uiStore: ui } = useStores()
   return (
     <div className="controls">
       <div className="control-group">

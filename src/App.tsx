@@ -14,11 +14,11 @@ import {
     validateWebGPUPipeline
 } from '@/util/debugHelpers'
 import type { DebugTools } from '@/types'
-import { UIProvider } from '@/state/UIContext'
-import { uiStore } from '@/state/UIStore'
+import { StoreProvider, useStores } from '@/stores/StoreContext'
 import { Controls } from '@/components/Controls'
 
 export default function App() {
+    const { uiStore } = useStores()
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
     const videoRef = useRef<HTMLVideoElement | null>(null)
     const rendererRef = useRef<ASCIIRenderer | null>(null)
@@ -65,7 +65,6 @@ export default function App() {
     }, [])
 
     return (
-        <UIProvider>
             <div className="app">
                 <div className="header">
                     <div className="title">ASCII Art Webcam</div>
@@ -79,6 +78,5 @@ export default function App() {
 
                 <div className="status">Running | Press 'H' for help</div>
             </div>
-        </UIProvider>
     )
 }

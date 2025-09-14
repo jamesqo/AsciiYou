@@ -26,6 +26,7 @@ export class APIClient {
         options: RequestInit = {}
     ) : Promise<z.infer<S>> {
         const url = `${this.baseUrl}${endpoint}`;
+        console.log(`${method} ${url}`);
         const res = await fetch(url, {
             method,
             body: JSON.stringify(body),

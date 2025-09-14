@@ -1,7 +1,6 @@
 import { makeAutoObservable, runInAction } from "mobx";
 import { z } from "zod";
 import { APIClient } from "@/service/APIClient";
-import type { RootStore } from '@/stores/RootStore'
 
 export const HuddleConnection = z.object({
   ok: z.literal(true),
@@ -10,62 +9,37 @@ export const HuddleConnection = z.object({
   role: z.enum(["host", "guest"]),
   huddleExpiry: z.string(),
   signalingWs: z.url(),
-});
+}).transform(o => ({
+  ...o,
+  toString() {
+    return [
+      "HuddleConnection {",
+      `  ok: ${o.ok},`,
+      `  role: ${o.role},`,
+      `  huddleId: ${o.huddleId},`,
+      `  participantId: ${o.participantId},`,
+      `  signalingWs: ${o.signalingWs},`,
+      `  huddleExpiry: ${o.huddleExpiry}`,
+      "}"
+    ].join("\n");
+  }
+}));
 export type HuddleConnection = z.infer<typeof HuddleConnection>;
 
 export class HuddleStore {
   private apiClient: APIClient;
-  conn?: HuddleConnection = undefined;
-  loading = false;
-  error?: string = undefined;
 
   constructor(apiClient: APIClient) {
     this.apiClient = apiClient;
     makeAutoObservable(this, {}, { autoBind: true });
   }
 
-  reset() {
-    this.conn = undefined;
-    this.error = undefined;
-    this.loading = false;
+  async startNew() : Promise<HuddleConnection> {
+    return await this.apiClient.post(`/huddles`, HuddleConnection);
   }
 
-  async startNew() {
-    this.loading = true;
-    try {
-      const conn = await this.apiClient.post("/huddles", HuddleConnection);
-      runInAction(() => {
-        this.conn = conn;
-        this.error = undefined;
-      });
-    } catch (e: any) {
-      runInAction(() => {
-        this.error = e?.message ?? String(e);
-      });
-    } finally {
-      runInAction(() => {
-        this.loading = false;
-      });
-    }
-  }
-
-  async join(huddleId: string) {
-    this.loading = true;
-    try {
-      const conn = await this.apiClient.post(`/huddles/${huddleId}/join`, HuddleConnection);
-      runInAction(() => {
-        this.conn = conn;
-        this.error = undefined;
-      });
-    } catch (e: any) {
-      runInAction(() => {
-        this.error = e?.message ?? String(e);
-      });
-    } finally {
-      runInAction(() => {
-        this.loading = false;
-      });
-    }
+  async join(huddleId: string) : Promise<HuddleConnection> {
+    return await this.apiClient.post(`/huddles/${huddleId}/join`, HuddleConnection);
   }
 }
 

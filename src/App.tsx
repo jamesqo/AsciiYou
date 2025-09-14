@@ -18,11 +18,13 @@ import { StoreProvider, useStores } from '@/stores/StoreContext'
 import { Controls } from '@/components/Controls'
 
 export default function App() {
-    const { uiStore } = useStores()
+    const { uiStore, huddleStore } = useStores()
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
     const videoRef = useRef<HTMLVideoElement | null>(null)
     const rendererRef = useRef<ASCIIRenderer | null>(null)
 
+    // runs once on mount
+    // won't re-run because the dependency array is empty
     useEffect(() => {
         let cancelled = false;
         (async () => {
@@ -47,6 +49,7 @@ export default function App() {
     }, [])
 
     // Dev-only: wire debug tools with lifecycle-friendly shortcuts (no window any casts)
+    // also runs once on mount
     useEffect(() => {
         if (!import.meta.env.DEV) return
         const tools: DebugTools = {
@@ -64,19 +67,25 @@ export default function App() {
         return () => detach()
     }, [])
 
+    const newHuddleClicked = async () => {
+        const conn = await huddleStore.startNew();
+        console.log('new huddle connection', conn);
+    }
+
     return (
-            <div className="app">
-                <div className="header">
-                    <div className="title">ASCII Art Webcam</div>
-                    <Controls />
-                </div>
-
-                <video id="cam" ref={videoRef} autoPlay muted playsInline />
-                <div className="canvas-container">
-                    <canvas id="gfx" ref={canvasRef} width={1280} height={720} />
-                </div>
-
-                <div className="status">Running | Press 'H' for help</div>
+        <div className="app">
+            <div className="header">
+                <div className="title">ASCII Art Webcam</div>
+                <Controls />
+                <button onClick={newHuddleClicked}>New huddle</button>
             </div>
+
+            <video id="cam" ref={videoRef} autoPlay muted playsInline />
+            <div className="canvas-container">
+                <canvas id="gfx" ref={canvasRef} width={1280} height={720} />
+            </div>
+
+            <div className="status">Running | Press 'H' for help</div>
+        </div>
     )
 }

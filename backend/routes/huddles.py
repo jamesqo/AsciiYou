@@ -19,7 +19,7 @@ class JoinOk(BaseModel):
     ok: bool
     huddleId: str
     participantId: str
-    role: str  # "host" | "guest"
+    role: Literal["host", "guest"]
     huddleExpiry: str
     sdpNegotiationUrl: HttpUrl
 

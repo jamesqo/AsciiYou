@@ -56,6 +56,7 @@ async def sdp_negotiation(websocket: WebSocket):
     
     @pc.on("track")
     def on_track(track):
+        print("on_track fired:", track.kind)
         if track.kind == "video":
             async def reader():
                 while True:

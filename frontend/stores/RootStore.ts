@@ -9,7 +9,6 @@ import { SignalingStore } from '@/stores/SignalingStore'
 // accessed by UI layer via useStores() hook
 export class RootStore {
   private readonly apiClient: APIClient
-  private readonly sdpClient: SDPClient
 
   readonly uiStore: UIStore
   readonly huddleStore: HuddleStore
@@ -17,17 +16,10 @@ export class RootStore {
 
   constructor() {
     this.apiClient = new APIClient(appConfig.apiUrl)
-    this.sdpClient = new SDPClient({
-      onOpen: () => console.log('SDP WebSocket opened'),
-      onClose: () => console.log('SDP WebSocket closed'),
-      onError: (err) => console.error('SDP WebSocket error', err),
-      onRecvMessage: (msg) => console.log('SDP WebSocket message received', msg),
-      onSendMessage: (msg) => console.log('SDP WebSocket message sent', msg)
-    })
 
     this.uiStore = new UIStore()
     this.huddleStore = new HuddleStore(this.apiClient)
-    this.signalingStore = new SignalingStore(this.sdpClient)
+    this.signalingStore = new SignalingStore()
   }
 }
 

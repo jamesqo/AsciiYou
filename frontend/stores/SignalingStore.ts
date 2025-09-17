@@ -1,4 +1,4 @@
-import { SDPClient } from "@/service/SDPClient";
+import { SDPClient, SDPMsg } from "@/service/SDPClient";
 import { makeAutoObservable } from "mobx";
 
 type InitConnectionOpts = {
@@ -11,8 +11,19 @@ export class SignalingStore {
   private readonly sdpClient: SDPClient;
   private pc?: RTCPeerConnection;
 
-  constructor(sdpClient: SDPClient) {
-    this.sdpClient = sdpClient;
+  constructor() {
+
+    this.sdpClient = new SDPClient({
+      onOpen: () => console.log('SDP WebSocket opened'),
+      onClose: () => console.log('SDP WebSocket closed'),
+      onError: (err) => console.error('SDP WebSocket error', err),
+      onRecvMessage: async (msg) => {
+        console.log('SDP WebSocket message received', msg)
+        await this.handleServerMessage(msg)
+      },
+      onSendMessage: (msg) => console.log('SDP WebSocket message sent', msg)
+    })
+
     makeAutoObservable(this, {}, { autoBind: true });
   }
 
@@ -72,5 +83,18 @@ export class SignalingStore {
     // Set up transceiver for webcam feed (send-only for now)
     let tx = this.pc.addTransceiver("video", { direction: "sendonly" })
     await tx.sender.replaceTrack(videoTrack);
+  }
+
+  async handleServerMessage(msg: SDPMsg) {
+    const pc = this.pc!;
+    if (msg.type === "answer") {
+      await pc.setRemoteDescription({ type: "answer", sdp: msg.sdp });
+    } else if (msg.type === "candidate") {
+      const c = msg.candidate;
+      await pc.addIceCandidate({
+        candidate: c.candidate,
+        sdpMLineIndex: c.sdpMLineIndex ?? 0,
+      });
+    }
   }
 }

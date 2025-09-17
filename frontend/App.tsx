@@ -72,13 +72,13 @@ export default function App() {
         const joinOk = await huddleStore.startNew();
         console.log('joined huddle', joinOk);
 
-        // Initialize RTCPeerConnection and start SDP negotiation with server
-        await signalingStore.initConnection(
-            joinOk.sdpNegotiationUrl
-        )
         // Wire user video feed into the RTCPeerConnection
-        const stream = videoRef.current!.srcObject as MediaStream
-        await signalingStore.setVideoStream(stream)
+        const videoStream = videoRef.current!.srcObject as MediaStream
+        // Initialize RTCPeerConnection and start SDP negotiation with server
+        await signalingStore.initConnection({
+            videoStream,
+            sdpUrl: joinOk.sdpNegotiationUrl
+        })
     }
 
     return (

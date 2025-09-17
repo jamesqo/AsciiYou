@@ -1,5 +1,6 @@
+import asyncio
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from aiortc import RTCPeerConnection, RTCSessionDescription
+from aiortc import RTCConfiguration, RTCIceServer, RTCPeerConnection, RTCSessionDescription
 from aiortc.sdp import candidate_from_sdp
 import jwt
 from backend.config import JWT_SECRET
@@ -25,7 +26,14 @@ async def sdp_negotiation(websocket: WebSocket):
     await websocket.accept()
     print(f"Accepted SDP websocket: hud={huddle_id} part={participant_id}")
 
-    pc = RTCPeerConnection()
+    pc = RTCPeerConnection(
+        RTCConfiguration(
+            iceServers=[
+                RTCIceServer(urls="stun:stun.l.google.com:19302")
+            ]
+        )
+    )
+    pc.addTransceiver("video") # recvonly by default
 
     @pc.on("icecandidate")
     async def on_icecandidate(candidate):
@@ -39,6 +47,35 @@ async def sdp_negotiation(websocket: WebSocket):
                 "sdpMLineIndex": candidate.sdpMLineIndex or 0,
             }
         })
+
+    @pc.on("icegatheringstatechange")
+    def _(): print("gather:", pc.iceGatheringState)
+
+    @pc.on("iceconnectionstatechange")
+    def _(): print("conn:", pc.iceConnectionState)
+    
+    @pc.on("track")
+    def on_track(track):
+        if track.kind == "video":
+            async def reader():
+                while True:
+                    _ = await track.recv()  # get next frame
+                    print("hello world")
+            asyncio.create_task(reader())
+
+    """
+    # TODO: for testing, remove
+    dc = pc.createDataChannel("control")
+
+    @dc.on("open")
+    def _():
+        dc.send("hello from server")
+
+    @dc.on("message")
+    def on_msg(msg):
+        print("DC recv:", msg)
+    # end TODO
+    """
 
     try:
         while True:
@@ -65,6 +102,7 @@ async def sdp_negotiation(websocket: WebSocket):
                 if sdp_line:
                     c = candidate_from_sdp(sdp_line)
                     c.sdpMLineIndex = cand.get("sdpMLineIndex", 0)
+                    print("Adding ICE candidate:", c)
                     await pc.addIceCandidate(c)
             elif mtype == "close":
                 break

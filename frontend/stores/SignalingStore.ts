@@ -10,9 +10,14 @@ export class SignalingStore {
     makeAutoObservable(this, {}, { autoBind: true });
   }
 
-  async startSDPNegotiation(sdpUrl: string) {
+  // Sets up a new RTCPeerConnection and starts SDP negotiation with server
+  async initConnection(sdpUrl: string) {
+    // TODO: add iceServers in the future for non-local dev
     const pc = new RTCPeerConnection()
     this.pc = pc
+
+    // Set up transceiver for webcam feed (send-only for now)
+    pc.addTransceiver("video", { direction: "sendonly" })
 
     // Connect to SDP negotiation WebSocket
     // Waits until WebSocket is open before returning (important so we can send messages)
@@ -32,12 +37,16 @@ export class SignalingStore {
             this.sdpClient.sendCandidate(event.candidate)
         }
     }
+  }
 
-    // sdpClient.onMessage((msg) => {
-    //     console.log('sdp message', msg)
-    // })
-    // sdpClient.onClose(() => {
-    //     console.log('sdp client closed')
-    // })
+  // Wires the user video feed into the RTCPeerConnection
+  async setVideoStream(stream: MediaStream) {
+    if (!this.pc) throw new Error('PC not initialized');
+    const videoTrack = stream.getVideoTracks()[0];
+    if (!videoTrack) return;
+  
+    // find or create the sendonly transceiver
+    let tx = this.pc.getTransceivers().find(t => t.receiver.track.kind === 'video' || t.direction === 'sendonly');
+    await tx!.sender.replaceTrack(videoTrack);
   }
 }

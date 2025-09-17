@@ -8,7 +8,7 @@ export const JoinOk = z.object({
   participantId: z.string(),
   role: z.enum(["host", "guest"]),
   huddleExpiry: z.string(),
-  signalingWs: z.url(),
+  sdpNegotiationUrl: z.url(),
 }).transform(o => ({
   ...o,
   toString() {
@@ -18,7 +18,7 @@ export const JoinOk = z.object({
       `  role: ${o.role},`,
       `  huddleId: ${o.huddleId},`,
       `  participantId: ${o.participantId},`,
-      `  signalingWs: ${o.signalingWs},`,
+      `  sdpNegotiationUrl: ${o.sdpNegotiationUrl},`,
       `  huddleExpiry: ${o.huddleExpiry}`,
       "}"
     ].join("\n");

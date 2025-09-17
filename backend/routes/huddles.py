@@ -1,39 +1,32 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, HttpUrl
 from typing import Dict
 import secrets
 import time
+from typing import Literal
+from aiortc import RTCPeerConnection, RTCSessionDescription
 
 
+router = APIRouter()
+
+# In-memory store of huddles -> expiry
+HUDDLES: Dict[str, float] = {}
+TTL_SECONDS = 60 * 60  # 1 hour
+
+# TODO: refactor to use snake_case?
+# We should find some way to reconcile this on the React side instead
 class JoinOk(BaseModel):
     ok: bool
     huddleId: str
     participantId: str
     role: str  # "host" | "guest"
     huddleExpiry: str
-    signalingWs: HttpUrl
+    sdpNegotiationUrl: HttpUrl
 
 
-app = FastAPI(title="AsciiYou Backend", version="0.1.0")
-
-# Allow Vite dev server
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:8000", "http://127.0.0.1:8000"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
-# In-memory store of huddles -> expiry
-HUDDLES: Dict[str, float] = {}
-TTL_SECONDS = 60 * 60  # 1 hour
-
-
-def now_iso() -> str:
-    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+class SDPMessage(BaseModel):
+    type: Literal["offer", "answer"]
+    sdp: str
 
 
 def expiry_iso(ttl: int = TTL_SECONDS) -> str:
@@ -44,7 +37,7 @@ def new_id(prefix: str) -> str:
     return f"{prefix}_{secrets.token_urlsafe(12)}"
 
 
-@app.post("/huddles", response_model=JoinOk)
+@router.post("/huddles", response_model=JoinOk)
 def create_huddle() -> JoinOk:
     huddle_id = new_id("h")
     participant_id = new_id("p")
@@ -55,11 +48,11 @@ def create_huddle() -> JoinOk:
         participantId=participant_id,
         role="host",
         huddleExpiry=expiry_iso(),
-        signalingWs="ws://localhost:8765/ws",  # placeholder signaling URL
+        sdpNegotiationUrl=f"TODO",
     )
 
 
-@app.post("/huddles/{huddle_id}/join", response_model=JoinOk)
+@router.post("/huddles/{huddle_id}/join", response_model=JoinOk)
 def join_huddle(huddle_id: str) -> JoinOk:
     exp = HUDDLES.get(huddle_id)
     if not exp or exp < time.time():
@@ -71,13 +64,5 @@ def join_huddle(huddle_id: str) -> JoinOk:
         participantId=participant_id,
         role="guest",
         huddleExpiry=expiry_iso(int(exp - time.time())),
-        signalingWs="ws://localhost:8765/ws",
+        sdpNegotiationUrl=f"TODO",
     )
-
-
-# Health check
-@app.get("/health")
-def health():
-    return {"ok": True, "now": now_iso()}
-
-

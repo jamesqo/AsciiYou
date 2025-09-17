@@ -6,7 +6,7 @@
 # from repo root
 python3 -m venv venv && source venv/bin/activate
 pip install -r backend/requirements.txt
-uvicorn backend.app.main:app --reload --port 3000
+uvicorn backend.main:app --reload --port 3000
 ```
 
 - CORS allows `http://localhost:8000` (Vite dev server).

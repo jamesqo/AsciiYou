@@ -258,8 +258,8 @@ export class ASCIIRenderer implements UserSettings {
 
     private async loadShaders(): Promise<{ computeWGSL: string; renderWGSL: string; }> {
         const [computeResponse, renderResponse] = await Promise.all([
-            fetch('src/shaders/computeMask.wgsl'),
-            fetch('src/shaders/renderMask.wgsl')
+            fetch('/shaders/computeMask.wgsl'),
+            fetch('/shaders/renderMask.wgsl')
         ]);
         if (!computeResponse.ok) throw new Error(`Failed to load compute shader: ${computeResponse.status}`);
         if (!renderResponse.ok) throw new Error(`Failed to load render shader: ${renderResponse.status}`);

@@ -71,6 +71,7 @@ export default defineConfig({
     open: true,
   },
   plugins: [react(), debugPlugin()],
+  root: 'frontend',
   build: {
     target: 'esnext',
     rollupOptions: {
@@ -84,7 +85,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": path.resolve(__dirname, "./frontend"),
     },
   },
 })

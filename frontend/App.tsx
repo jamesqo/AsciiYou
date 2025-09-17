@@ -16,9 +16,10 @@ import {
 import type { DebugTools } from '@/types'
 import { StoreProvider, useStores } from '@/stores/StoreContext'
 import { Controls } from '@/components/Controls'
+import { SDPClient } from './service/SDPClient'
 
 export default function App() {
-    const { uiStore, huddleStore } = useStores()
+    const { uiStore, huddleStore, signalingStore } = useStores()
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
     const videoRef = useRef<HTMLVideoElement | null>(null)
     const rendererRef = useRef<ASCIIRenderer | null>(null)
@@ -68,8 +69,14 @@ export default function App() {
     }, [])
 
     const newHuddleClicked = async () => {
-        const conn = await huddleStore.startNew();
-        console.log('new huddle connection', conn);
+        const joinOk = await huddleStore.startNew();
+        console.log('joined huddle', joinOk);
+
+        // Set up SDP negotiation channel to exchange offer,
+        // answer, ICE candidate messages with server
+        await signalingStore.startSDPNegotiation(
+            joinOk.sdpNegotiationUrl
+        )
     }
 
     return (

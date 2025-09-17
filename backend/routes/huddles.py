@@ -1,10 +1,10 @@
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, HttpUrl
-from typing import Dict
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, AnyUrl
+from typing import Dict, Set, Literal
 import secrets
 import time
-from typing import Literal
-from aiortc import RTCPeerConnection, RTCSessionDescription
+import jwt
+from backend.config import JWT_SECRET, JWT_TTL_SECONDS
 
 
 router = APIRouter()
@@ -21,7 +21,7 @@ class JoinOk(BaseModel):
     participantId: str
     role: Literal["host", "guest"]
     huddleExpiry: str
-    sdpNegotiationUrl: HttpUrl
+    sdpNegotiationUrl: AnyUrl
 
 
 class SDPMessage(BaseModel):
@@ -29,8 +29,8 @@ class SDPMessage(BaseModel):
     sdp: str
 
 
-def expiry_iso(ttl: int = TTL_SECONDS) -> str:
-    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() + ttl))
+def isotime(seconds: float) -> str:
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(seconds))
 
 
 def new_id(prefix: str) -> str:
@@ -41,14 +41,22 @@ def new_id(prefix: str) -> str:
 def create_huddle() -> JoinOk:
     huddle_id = new_id("h")
     participant_id = new_id("p")
-    HUDDLES[huddle_id] = time.time() + TTL_SECONDS
+    exp = time.time() + TTL_SECONDS
+    HUDDLES[huddle_id] = exp
+    token = jwt.encode({
+        "hid": huddle_id,
+        "pid": participant_id,
+        "role": "host",
+        "iat": int(time.time()),
+        "exp": int(time.time()) + JWT_TTL_SECONDS,
+    }, JWT_SECRET, algorithm="HS256")
     return JoinOk(
         ok=True,
         huddleId=huddle_id,
         participantId=participant_id,
         role="host",
-        huddleExpiry=expiry_iso(),
-        sdpNegotiationUrl=f"TODO",
+        huddleExpiry=isotime(exp),
+        sdpNegotiationUrl=f"ws://localhost:3000/sdp?token={token}",
     )
 
 
@@ -58,11 +66,19 @@ def join_huddle(huddle_id: str) -> JoinOk:
     if not exp or exp < time.time():
         raise HTTPException(status_code=404, detail="Huddle not found or expired")
     participant_id = new_id("p")
+    token = jwt.encode({
+        "hid": huddle_id,
+        "pid": participant_id,
+        "role": "guest",
+        "iat": int(time.time()),
+        "exp": int(time.time()) + JWT_TTL_SECONDS,
+    }, JWT_SECRET, algorithm="HS256")
     return JoinOk(
         ok=True,
         huddleId=huddle_id,
         participantId=participant_id,
         role="guest",
-        huddleExpiry=expiry_iso(int(exp - time.time())),
-        sdpNegotiationUrl=f"TODO",
+        huddleExpiry=isotime(exp),
+        sdpNegotiationUrl=f"ws://localhost:3000/sdp?token={token}",
     )
+

@@ -4,57 +4,53 @@ import { z } from "zod";
 /** ---------- Contracts (share with server) ---------- */
 export const OfferMsg = z.object({
   type: z.literal("offer"),
-  negotiationId: z.string(),
+  // negotiationId: z.string(),
   sdp: z.string(),
 });
 export const AnswerMsg = z.object({
   type: z.literal("answer"),
-  negotiationId: z.string(),
+  // negotiationId: z.string(),
   sdp: z.string(),
 });
 export const CandidateMsg = z.object({
   type: z.literal("candidate"),
-  negotiationId: z.string(),
+  // negotiationId: z.string(),
   candidate: z.object({
     candidate: z.string(),
     sdpMLineIndex: z.number().int(),
   }),
 });
-export const PeerEvent = z.object({
-  type: z.enum(["peer-joined", "peer-left"]),
-  participantId: z.string(),
-});
-export const SignalMsg = z.discriminatedUnion("type", [
-  OfferMsg, AnswerMsg, CandidateMsg, PeerEvent,
+// export const PeerEvent = z.object({
+//   type: z.enum(["peer-joined", "peer-left"]),
+//   participantId: z.string(),
+// });
+export const SDPMsg = z.discriminatedUnion("type", [
+  OfferMsg, AnswerMsg, CandidateMsg,
 ]);
-export type SignalMsg = z.infer<typeof SignalMsg>;
+export type SDPMsg = z.infer<typeof SDPMsg>;
 
 /** ---------- Client ---------- */
-type TokenSupplier = () => Promise<string>; // returns fresh short-lived token
-type UrlBuilder = (roomId: string, token: string) => string; // builds wss://...
 
-type SignalingClientOpts = {
-  roomId: string;
-  getToken: TokenSupplier;
-  buildUrl: UrlBuilder; // e.g. (id, t) => `wss://sig.example.com/rooms/${id}?token=${t}`
+type SDPClientOpts = {
   heartbeatMs?: number; // default 20_000
   idleTimeoutMs?: number; // server expects a heartbeat before this; default 60_000
   maxBackoffMs?: number; // default 30_000
   onOpen?: () => void;
   onClose?: (ev: CloseEvent) => void;
   onError?: (err: unknown) => void;
-  onMessage?: (msg: SignalMsg) => void;
+  onRecvMessage?: (msg: SDPMsg) => void;
+  onSendMessage?: (msg: SDPMsg) => void;
 };
 
-export class SignalingClient {
+export class SDPClient {
   private ws?: WebSocket;
-  private opts: Required<SignalingClientOpts>;
+  private opts: Required<SDPClientOpts>;
   private backoff = 1000;
   private hbTimer?: number;
   private lastSentAt = 0;
   private closedByUser = false;
 
-  constructor(opts: SignalingClientOpts) {
+  constructor(opts: SDPClientOpts = {}) {
     this.opts = {
       heartbeatMs: 20_000,
       idleTimeoutMs: 60_000,
@@ -62,22 +58,58 @@ export class SignalingClient {
       onOpen: () => {},
       onClose: () => {},
       onError: () => {},
-      onMessage: () => {},
+      onRecvMessage: () => {},
       ...opts,
     };
   }
 
   /** Connect (or reconnect) */
-  async connect() {
+  // This method blocks until the WebSocket is open, so we can safely send messages afterwards
+  async connect(url: string) {
+    console.log('connecting to sdp url:', url);
     this.closedByUser = false;
-    try {
-      const token = await this.opts.getToken();
-      const url = this.opts.buildUrl(this.opts.roomId, token);
-      this.openSocket(url);
-    } catch (e) {
-      this.opts.onError?.(e);
-      this.scheduleReconnect();
-    }
+    return new Promise<void>((resolve, reject) => {
+      try {
+        const ws = new WebSocket(url);
+        this.ws = ws;
+
+        ws.onopen = () => {
+          this.backoff = 1000; // reset backoff
+          this.startHeartbeat();
+          this.opts.onOpen?.();
+          resolve();
+        };
+
+        ws.onmessage = (ev) => {
+          try {
+            const parsed = JSON.parse(ev.data as string);
+            const msg = SDPMsg.parse(parsed);
+            this.opts.onRecvMessage?.(msg);
+          } catch (e) {
+            this.opts.onError?.(e);
+          }
+        };
+
+        ws.onerror = (ev) => {
+          this.opts.onError?.(ev);
+          // If socket isn't open yet, fail the connect promise
+          if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+            reject(new Error('WS error during connect'));
+          }
+        };
+
+        ws.onclose = (ev) => {
+          this.clearHeartbeat();
+          this.opts.onClose?.(ev);
+          this.ws = undefined;
+          if (!this.closedByUser) this.scheduleReconnect();
+        };
+      } catch (e) {
+        this.opts.onError?.(e);
+        this.scheduleReconnect();
+        reject(e as Error);
+      }
+    });
   }
 
   /** Graceful close (no reconnect) */
@@ -89,27 +121,24 @@ export class SignalingClient {
   }
 
   /** Send a validated message (throws if socket not open) */
-  send(msg: SignalMsg) {
+  send(msg: SDPMsg) {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       throw new Error("Signaling WS not open");
     }
     // Optional: validate before send (dev safety)
-    SignalMsg.parse(msg);
+    SDPMsg.parse(msg);
+    this.opts.onSendMessage?.(msg);
     this.ws.send(JSON.stringify(msg));
     this.lastSentAt = Date.now();
   }
 
   /** Convenience helpers */
-  sendOffer(sdp: string, negotiationId: string) {
-    this.send({ type: "offer", sdp, negotiationId });
+  sendOffer(sdp: string) {
+    this.send({ type: "offer", sdp });
   }
-  sendAnswer(sdp: string, negotiationId: string) {
-    this.send({ type: "answer", sdp, negotiationId });
-  }
-  sendCandidate(candidate: RTCIceCandidateInit, negotiationId: string) {
+  sendCandidate(candidate: RTCIceCandidateInit) {
     this.send({
       type: "candidate",
-      negotiationId,
       candidate: {
         candidate: candidate.candidate ?? "",
         sdpMLineIndex: candidate.sdpMLineIndex ?? 0,
@@ -132,8 +161,8 @@ export class SignalingClient {
     ws.onmessage = (ev) => {
       try {
         const parsed = JSON.parse(ev.data as string);
-        const msg = SignalMsg.parse(parsed);
-        this.opts.onMessage?.(msg);
+        const msg = SDPMsg.parse(parsed);
+        this.opts.onRecvMessage?.(msg);
       } catch (e) {
         this.opts.onError?.(e);
       }
@@ -185,9 +214,7 @@ export class SignalingClient {
     setTimeout(async () => {
       try {
         // Refresh token on every reconnect attempt
-        const token = await this.opts.getToken();
-        const url = this.opts.buildUrl(this.opts.roomId, token);
-        this.openSocket(url);
+        await this.connect(this.ws!.url);
       } catch (e) {
         this.opts.onError?.(e);
         this.scheduleReconnect();

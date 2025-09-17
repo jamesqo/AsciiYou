@@ -2,7 +2,7 @@ import { makeAutoObservable, runInAction } from "mobx";
 import { z } from "zod";
 import { APIClient } from "@/service/APIClient";
 
-export const HuddleConnection = z.object({
+export const JoinOk = z.object({
   ok: z.literal(true),
   huddleId: z.string(),
   participantId: z.string(),
@@ -13,7 +13,7 @@ export const HuddleConnection = z.object({
   ...o,
   toString() {
     return [
-      "HuddleConnection {",
+      "JoinOk {",
       `  ok: ${o.ok},`,
       `  role: ${o.role},`,
       `  huddleId: ${o.huddleId},`,
@@ -24,7 +24,7 @@ export const HuddleConnection = z.object({
     ].join("\n");
   }
 }));
-export type HuddleConnection = z.infer<typeof HuddleConnection>;
+export type JoinOk = z.infer<typeof JoinOk>;
 
 export class HuddleStore {
   private apiClient: APIClient;
@@ -34,12 +34,12 @@ export class HuddleStore {
     makeAutoObservable(this, {}, { autoBind: true });
   }
 
-  async startNew() : Promise<HuddleConnection> {
-    return await this.apiClient.post(`/huddles`, HuddleConnection);
+  async startNew() : Promise<JoinOk> {
+    return await this.apiClient.post(`/huddles`, JoinOk);
   }
 
-  async join(huddleId: string) : Promise<HuddleConnection> {
-    return await this.apiClient.post(`/huddles/${huddleId}/join`, HuddleConnection);
+  async join(huddleId: string) : Promise<JoinOk> {
+    return await this.apiClient.post(`/huddles/${huddleId}/join`, JoinOk);
   }
 }
 

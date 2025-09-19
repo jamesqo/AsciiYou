@@ -33,8 +33,6 @@ class AppSettings(BaseSettings):
     jwt_secret: str = "dev-secret-change-me"
     jwt_ttl_seconds: int = 300
 
-    # Signaling
-    sdp_ws_base: AnyUrl = "ws://localhost:3000/sdp"
     # Persistence
     redis_url: str = "redis://localhost:6379/0"
     huddle_ttl_seconds: int = 3600

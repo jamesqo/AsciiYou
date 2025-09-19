@@ -3,7 +3,7 @@ import { makeAutoObservable } from "mobx";
 
 type ServerExchangeOpts = {
   videoStream: MediaStream;
-  sdpUrl: string;
+  sdpToken: string;
   iceServers?: RTCIceServer[];
 };
 
@@ -37,7 +37,7 @@ export class SignalingStore {
     // Connect to SDP negotiation WebSocket
     // Waits until WebSocket is in OPEN state before returning
     // (important so we can safely send messages)
-    await this.sdpClient.beginNegotiation(opts.sdpUrl)
+    await this.sdpClient.beginNegotiation(opts.sdpToken)
 
     // Create SDP offer message and set local description
     // (note: This step has to be done after sending the video stream--

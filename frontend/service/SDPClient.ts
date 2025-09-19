@@ -32,6 +32,7 @@ export type SDPMsg = z.infer<typeof SDPMsg>;
 /** ---------- Client ---------- */
 
 type SDPClientOpts = {
+  baseWsUrl?: string;
   heartbeatMs?: number; // default 20_000
   idleTimeoutMs?: number; // server expects a heartbeat before this; default 60_000
   maxBackoffMs?: number; // default 30_000
@@ -52,6 +53,7 @@ export class SDPClient {
 
   constructor(opts: SDPClientOpts = {}) {
     this.opts = {
+      baseWsUrl: "ws://localhost:3000/sdp",
       heartbeatMs: 20_000,
       idleTimeoutMs: 60_000,
       maxBackoffMs: 30_000,
@@ -61,7 +63,8 @@ export class SDPClient {
 
   /** Connect (or reconnect) */
   // This method blocks until the WebSocket is open, so we can safely send messages afterwards
-  async beginNegotiation(wsUrl: string) {
+  async beginNegotiation(sdpToken: string) {
+    const wsUrl = `${this.opts.baseWsUrl}?token=${sdpToken}`;
     console.log('connecting to sdp url:', wsUrl);
     this.closedByUser = false;
     return new Promise<void>((resolve, reject) => {

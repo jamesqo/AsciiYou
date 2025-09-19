@@ -5,12 +5,15 @@ from aiortc.sdp import candidate_from_sdp
 import jwt
 from backend.settings import settings
 from backend.deps import get_huddle_repo
-from backend.persistence.huddles import HuddleRepository
+from backend.persistence.huddle_repository import HuddleRepository
 
 router = APIRouter()
 
 @router.websocket("/sdp")
-async def sdp_negotiation(websocket: WebSocket, repo: HuddleRepository = Depends(get_huddle_repo)):
+async def sdp_negotiation(
+    websocket: WebSocket,
+    huddle_repo: HuddleRepository = Depends(get_huddle_repo)
+):
     # Validate token and extract claims
     token = websocket.query_params.get("token")
     if not token:
@@ -24,7 +27,7 @@ async def sdp_negotiation(websocket: WebSocket, repo: HuddleRepository = Depends
     huddle_id = claims.get("hid")
     participant_id = claims.get("pid")
     # Validate huddle exists
-    h = await repo.get(huddle_id)
+    h = await huddle_repo.get(huddle_id)
     if not h:
         await websocket.close(code=1008)
         return
@@ -67,6 +70,7 @@ async def sdp_negotiation(websocket: WebSocket, repo: HuddleRepository = Depends
                 while True:
                     _ = await track.recv()  # get next frame
                     # print("hello world")
+                    # TODO: broadcast to other participants in the room
             asyncio.create_task(reader())
 
     try:

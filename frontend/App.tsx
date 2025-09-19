@@ -77,7 +77,7 @@ export default function App() {
         // Initialize RTCPeerConnection and start SDP negotiation with server
         await signalingStore.beginServerExchange({
             videoStream,
-            sdpUrl: joinOk.sdpNegotiationUrl
+            sdpToken: joinOk.sdpToken
         })
     }
 

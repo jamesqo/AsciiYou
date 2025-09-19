@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { ASCIIRenderer } from '@/engine/ASCIIRenderer'
 import {
     attachDebugShortcuts,
@@ -23,6 +23,8 @@ export default function App() {
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
     const videoRef = useRef<HTMLVideoElement | null>(null)
     const rendererRef = useRef<ASCIIRenderer | null>(null)
+    const [joinOpen, setJoinOpen] = useState(false)
+    const [joinCode, setJoinCode] = useState("")
 
     // runs once on mount
     // won't re-run because the dependency array is empty
@@ -81,12 +83,33 @@ export default function App() {
         })
     }
 
+    const handleJoinCodeSubmit = async (joinCode: string) => {
+        // NOTE: for now the join code is just the huddle ID,
+        // but this may change in the future
+        const joinOk = await huddleStore.join(joinCode);
+        console.log('joined huddle', joinOk);
+
+        // Wire user video feed into the RTCPeerConnection
+        const videoStream = videoRef.current!.srcObject as MediaStream
+        // Initialize RTCPeerConnection and start SDP negotiation with server
+        await signalingStore.beginServerExchange({
+            videoStream,
+            sdpToken: joinOk.sdpToken
+        })
+    }
+
+    const joinHuddleClicked = () => {
+        setJoinCode("")
+        setJoinOpen(true)
+    }
+
     return (
         <div className="app">
             <div className="header">
                 <div className="title">ASCII Art Webcam</div>
                 <Controls />
                 <button onClick={newHuddleClicked}>New huddle</button>
+                <button onClick={joinHuddleClicked}>Join huddle</button>
             </div>
 
             <video id="cam" ref={videoRef} autoPlay muted playsInline />
@@ -95,6 +118,27 @@ export default function App() {
             </div>
 
             <div className="status">Running | Press 'H' for help</div>
+
+            {joinOpen && (
+                <div className="modal-backdrop">
+                    <div className="modal">
+                        <div className="title">Enter join code:</div>
+                        <input
+                            className="modal-input"
+                            autoFocus
+                            value={joinCode}
+                            onChange={(e) => setJoinCode(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    setJoinOpen(false)
+                                    handleJoinCodeSubmit(joinCode.trim())
+                                }
+                            }}
+                            placeholder="e.g. h_xxx"
+                        />
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 import secrets
 import time
 import jwt
-from datetime import datetime
+from datetime import datetime, timezone
 from backend.settings import settings
 from backend.deps import get_huddle_repo, get_participant_repo
 from backend.persistence.huddle_repository import HuddleRepository
@@ -39,8 +39,8 @@ async def create_huddle(
     # persist huddle with TTL
     await huddle_repo.create(Huddle(
         id=huddle_id,
-        created_at=datetime.utcnow(),
-        expires_at=datetime.utcfromtimestamp(exp),
+        created_at=datetime.now(timezone.utc),
+        expires_at=datetime.fromtimestamp(exp, tz=timezone.utc),
         participants={},
     ), settings.huddle_ttl_seconds)
     await participant_repo.add(huddle_id, Participant(id=participant_id, role="host"), settings.huddle_ttl_seconds)

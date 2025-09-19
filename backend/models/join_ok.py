@@ -13,6 +13,6 @@ class JoinOk(BaseModel):
     participant_id: str
     role: Literal["host", "guest"]
     huddle_expiry: str
-    sdp_token: AnyUrl
+    sdp_token: str
 
 

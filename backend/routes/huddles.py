@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, AnyUrl
+from pydantic import BaseModel, AnyUrl, ConfigDict
+from pydantic.alias_generators import to_camel
 from typing import Dict, Set, Literal
 import secrets
 import time
@@ -13,15 +14,14 @@ router = APIRouter()
 HUDDLES: Dict[str, float] = {}
 TTL_SECONDS = 60 * 60  # 1 hour
 
-# TODO: refactor to use snake_case?
-# We should find some way to reconcile this on the React side instead
 class JoinOk(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
     ok: bool
-    huddleId: str
-    participantId: str
+    huddle_id: str
+    participant_id: str
     role: Literal["host", "guest"]
-    huddleExpiry: str
-    sdpNegotiationUrl: AnyUrl
+    huddle_expiry: str
+    sdp_negotiation_url: AnyUrl
 
 
 class SDPMessage(BaseModel):
@@ -52,11 +52,11 @@ def create_huddle() -> JoinOk:
     }, JWT_SECRET, algorithm="HS256")
     return JoinOk(
         ok=True,
-        huddleId=huddle_id,
-        participantId=participant_id,
+        huddle_id=huddle_id,
+        participant_id=participant_id,
         role="host",
-        huddleExpiry=isotime(exp),
-        sdpNegotiationUrl=f"ws://localhost:3000/sdp?token={token}",
+        huddle_expiry=isotime(exp),
+        sdp_negotiation_url=f"ws://localhost:3000/sdp?token={token}",
     )
 
 
@@ -75,10 +75,10 @@ def join_huddle(huddle_id: str) -> JoinOk:
     }, JWT_SECRET, algorithm="HS256")
     return JoinOk(
         ok=True,
-        huddleId=huddle_id,
-        participantId=participant_id,
+        huddle_id=huddle_id,
+        participant_id=participant_id,
         role="guest",
-        huddleExpiry=isotime(exp),
-        sdpNegotiationUrl=f"ws://localhost:3000/sdp?token={token}",
+        huddle_expiry=isotime(exp),
+        sdp_negotiation_url=f"ws://localhost:3000/sdp?token={token}",
     )
 

@@ -67,7 +67,6 @@ function debugPlugin(): Plugin {
 
 export default defineConfig({
   server: {
-    port: 8000,
     open: true,
   },
   plugins: [react(), debugPlugin()],

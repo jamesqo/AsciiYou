@@ -42,9 +42,9 @@ async def create_huddle(
         created_at=datetime.now(timezone.utc),
         expires_at=datetime.fromtimestamp(exp, tz=timezone.utc),
         participants=None,
-    ), settings.huddle_ttl_seconds
+    )
 
-    await huddle_repo.create(huddle)
+    await huddle_repo.create(huddle, settings.huddle_ttl_seconds)
     await participant_repo.add(huddle_id, participant, settings.huddle_ttl_seconds)
 
     token = jwt.encode({

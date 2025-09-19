@@ -27,7 +27,7 @@ class AppSettings(BaseSettings):
     )
 
     # Core app settings
-    cors_origins: List[str] = ["http://localhost:8000", "http://127.0.0.1:8000"]
+    cors_origin_regex: str | None = None
 
     # Auth
     jwt_secret: str = "dev-secret-change-me"

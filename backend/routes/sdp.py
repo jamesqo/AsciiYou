@@ -3,8 +3,9 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 from aiortc import RTCConfiguration, RTCIceServer, RTCPeerConnection, RTCSessionDescription
 from aiortc.sdp import candidate_from_sdp
 import jwt
+from backend.persistence.participant_repository import ParticipantRepository
 from backend.settings import settings
-from backend.deps import get_huddle_repo
+from backend.deps import get_huddle_repo, get_participant_repo
 from backend.persistence.huddle_repository import HuddleRepository
 
 router = APIRouter()
@@ -12,7 +13,8 @@ router = APIRouter()
 @router.websocket("/sdp")
 async def sdp_negotiation(
     websocket: WebSocket,
-    huddle_repo: HuddleRepository = Depends(get_huddle_repo)
+    huddle_repo: HuddleRepository = Depends(get_huddle_repo),
+    participant_repo: ParticipantRepository = Depends(get_participant_repo)
 ):
     # Validate token and extract claims
     token = websocket.query_params.get("token")
@@ -71,6 +73,8 @@ async def sdp_negotiation(
                     _ = await track.recv()  # get next frame
                     # print("hello world")
                     # TODO: broadcast to other participants in the room
+                    current_participants = await participant_repo.list_by_huddle(huddle_id) # TODO: perhaps there should be something like a huddle.get_participants() method to wrap this?
+                    print([p.id for p in current_participants])
             asyncio.create_task(reader())
 
     try:

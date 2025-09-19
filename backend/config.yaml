@@ -1,6 +1,4 @@
-cors_origins:
-  - http://localhost:8000
-  - http://127.0.0.1:8000
+cors_origin_regex: "http://localhost:\\d+$"
 
 jwt_secret: dev-secret-change-me
 jwt_ttl_seconds: 300

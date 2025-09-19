@@ -75,7 +75,7 @@ export default function App() {
         // Wire user video feed into the RTCPeerConnection
         const videoStream = videoRef.current!.srcObject as MediaStream
         // Initialize RTCPeerConnection and start SDP negotiation with server
-        await signalingStore.initConnection({
+        await signalingStore.beginServerExchange({
             videoStream,
             sdpUrl: joinOk.sdpNegotiationUrl
         })

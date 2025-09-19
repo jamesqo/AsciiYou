@@ -44,7 +44,7 @@ type SDPClientOpts = {
 
 export class SDPClient {
   private ws?: WebSocket;
-  private opts: Required<SDPClientOpts>;
+  private opts: SDPClientOpts;
   private backoff = 1000;
   private hbTimer?: number;
   private lastSentAt = 0;
@@ -55,27 +55,23 @@ export class SDPClient {
       heartbeatMs: 20_000,
       idleTimeoutMs: 60_000,
       maxBackoffMs: 30_000,
-      onOpen: () => {},
-      onClose: () => {},
-      onError: () => {},
-      onRecvMessage: () => {},
       ...opts,
     };
   }
 
   /** Connect (or reconnect) */
   // This method blocks until the WebSocket is open, so we can safely send messages afterwards
-  async connect(url: string) {
-    console.log('connecting to sdp url:', url);
+  async beginNegotiation(wsUrl: string) {
+    console.log('connecting to sdp url:', wsUrl);
     this.closedByUser = false;
     return new Promise<void>((resolve, reject) => {
       try {
-        const ws = new WebSocket(url);
+        const ws = new WebSocket(wsUrl);
         this.ws = ws;
 
         ws.onopen = () => {
           this.backoff = 1000; // reset backoff
-          this.startHeartbeat();
+          // this.startHeartbeat();
           this.opts.onOpen?.();
           resolve();
         };
@@ -99,14 +95,14 @@ export class SDPClient {
         };
 
         ws.onclose = (ev) => {
-          this.clearHeartbeat();
+          // this.clearHeartbeat();
           this.opts.onClose?.(ev);
           this.ws = undefined;
-          if (!this.closedByUser) this.scheduleReconnect();
+          // if (!this.closedByUser) this.scheduleReconnect();
         };
       } catch (e) {
         this.opts.onError?.(e);
-        this.scheduleReconnect();
+        // this.scheduleReconnect();
         reject(e as Error);
       }
     });
@@ -115,7 +111,7 @@ export class SDPClient {
   /** Graceful close (no reconnect) */
   close(code = 1000, reason = "client-close") {
     this.closedByUser = true;
-    this.clearHeartbeat();
+    // this.clearHeartbeat();
     this.ws?.close(code, reason);
     this.ws = undefined;
   }
@@ -136,6 +132,7 @@ export class SDPClient {
   sendOffer(sdp: string) {
     this.send({ type: "offer", sdp });
   }
+  
   sendCandidate(candidate: RTCIceCandidateInit) {
     this.send({
       type: "candidate",
@@ -148,77 +145,77 @@ export class SDPClient {
 
   /** ---------- internals ---------- */
 
-  private openSocket(url: string) {
-    const ws = new WebSocket(url);
-    this.ws = ws;
+  // private openSocket(url: string) {
+  //   const ws = new WebSocket(url);
+  //   this.ws = ws;
 
-    ws.onopen = () => {
-      this.backoff = 1000; // reset backoff
-      this.startHeartbeat();
-      this.opts.onOpen?.();
-    };
+  //   ws.onopen = () => {
+  //     this.backoff = 1000; // reset backoff
+  //     this.startHeartbeat();
+  //     this.opts.onOpen?.();
+  //   };
 
-    ws.onmessage = (ev) => {
-      try {
-        const parsed = JSON.parse(ev.data as string);
-        const msg = SDPMsg.parse(parsed);
-        this.opts.onRecvMessage?.(msg);
-      } catch (e) {
-        this.opts.onError?.(e);
-      }
-    };
+  //   ws.onmessage = (ev) => {
+  //     try {
+  //       const parsed = JSON.parse(ev.data as string);
+  //       const msg = SDPMsg.parse(parsed);
+  //       this.opts.onRecvMessage?.(msg);
+  //     } catch (e) {
+  //       this.opts.onError?.(e);
+  //     }
+  //   };
 
-    ws.onerror = (ev) => this.opts.onError?.(ev);
+  //   ws.onerror = (ev) => this.opts.onError?.(ev);
 
-    ws.onclose = (ev) => {
-      this.clearHeartbeat();
-      this.opts.onClose?.(ev);
-      this.ws = undefined;
+  //   ws.onclose = (ev) => {
+  //     this.clearHeartbeat();
+  //     this.opts.onClose?.(ev);
+  //     this.ws = undefined;
 
-      // If token expired (server can set code 4001/4003), fetch fresh token & reconnect
-      if (!this.closedByUser) this.scheduleReconnect();
-    };
-  }
+  //     // If token expired (server can set code 4001/4003), fetch fresh token & reconnect
+  //     if (!this.closedByUser) this.scheduleReconnect();
+  //   };
+  // }
 
-  private startHeartbeat() {
-    this.clearHeartbeat();
-    const tick = () => {
-      if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
-      // Send ping as a no-op app-level message (or use native ping if server supports)
-      // Here we'll piggyback on idle cadence: send only if we've been quiet.
-      const idleFor = Date.now() - this.lastSentAt;
-      if (idleFor > this.opts.heartbeatMs) {
-        // lightweight heartbeat: servers often accept a comment or {"type":"ping"}
-        this.ws.send('{"type":"ping"}');
-        this.lastSentAt = Date.now();
-      }
-      this.hbTimer = window.setTimeout(tick, this.opts.heartbeatMs);
-    };
-    this.hbTimer = window.setTimeout(tick, this.opts.heartbeatMs);
-  }
+  // private startHeartbeat() {
+  //   this.clearHeartbeat();
+  //   const tick = () => {
+  //     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+  //     // Send ping as a no-op app-level message (or use native ping if server supports)
+  //     // Here we'll piggyback on idle cadence: send only if we've been quiet.
+  //     const idleFor = Date.now() - this.lastSentAt;
+  //     if (idleFor > this.opts.heartbeatMs!) {
+  //       // lightweight heartbeat: servers often accept a comment or {"type":"ping"}
+  //       this.ws.send('{"type":"ping"}');
+  //       this.lastSentAt = Date.now();
+  //     }
+  //     this.hbTimer = window.setTimeout(tick, this.opts.heartbeatMs);
+  //   };
+  //   this.hbTimer = window.setTimeout(tick, this.opts.heartbeatMs);
+  // }
 
-  private clearHeartbeat() {
-    if (this.hbTimer) {
-      clearTimeout(this.hbTimer);
-      this.hbTimer = undefined;
-    }
-  }
+  // private clearHeartbeat() {
+  //   if (this.hbTimer) {
+  //     clearTimeout(this.hbTimer);
+  //     this.hbTimer = undefined;
+  //   }
+  // }
 
-  private async scheduleReconnect() {
-    if (this.closedByUser) return;
+  // private async scheduleReconnect() {
+  //   if (this.closedByUser) return;
 
-    const delay = this.backoff + Math.floor(Math.random() * 250);
-    const capped = Math.min(delay, this.opts.maxBackoffMs);
-    this.backoff = Math.min(this.backoff * 2, this.opts.maxBackoffMs);
+  //   const delay = this.backoff + Math.floor(Math.random() * 250);
+  //   const capped = Math.min(delay, this.opts.maxBackoffMs!);
+  //   this.backoff = Math.min(this.backoff * 2, this.opts.maxBackoffMs!);
 
-    setTimeout(async () => {
-      try {
-        // Refresh token on every reconnect attempt
-        await this.connect(this.ws!.url);
-      } catch (e) {
-        this.opts.onError?.(e);
-        this.scheduleReconnect();
-      }
-    }, capped);
-  }
+  //   setTimeout(async () => {
+  //     try {
+  //       // Refresh token on every reconnect attempt
+  //       await this.beginNegotiation(this.ws!.url);
+  //     } catch (e) {
+  //       this.opts.onError?.(e);
+  //       this.scheduleReconnect();
+  //     }
+  //   }, capped);
+  // }
 }

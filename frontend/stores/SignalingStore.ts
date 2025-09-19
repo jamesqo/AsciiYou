@@ -1,10 +1,10 @@
 import { SDPClient, SDPMsg } from "@/service/SDPClient";
 import { makeAutoObservable } from "mobx";
 
-type InitConnectionOpts = {
+type ServerExchangeOpts = {
   videoStream: MediaStream;
   sdpUrl: string;
-  iceServers?: RTCIceServer[]; // TODO
+  iceServers?: RTCIceServer[];
 };
 
 export class SignalingStore {
@@ -12,7 +12,6 @@ export class SignalingStore {
   private pc?: RTCPeerConnection;
 
   constructor() {
-
     this.sdpClient = new SDPClient({
       onOpen: () => console.log('SDP WebSocket opened'),
       onClose: () => console.log('SDP WebSocket closed'),
@@ -28,32 +27,17 @@ export class SignalingStore {
   }
 
   // Sets up a new RTCPeerConnection and starts SDP negotiation with server
-  async initConnection(opts: InitConnectionOpts) {
-    // TODO: add iceServers in the future for non-local dev
-    const pc = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
-    });
-    this.pc = pc
-    await this.setVideoStream(opts.videoStream)
-
-    // TODO: remove this
-    // const dc = pc.createDataChannel("control")
-    // dc.onopen = () => {
-    //     console.log("DC open")
-    // }
-    // dc.onmessage = (event) => {
-    //     console.log("DC recv:", event.data)
-    // }
-    // dc.onerror = (event) => {
-    //     console.error("DC error:", event)
-    // }
-    // dc.onclose = () => {
-    //     console.log("DC close")
-    // }
+  async beginServerExchange(opts: ServerExchangeOpts) {
+    const pc = await this.initPeerConnection(
+      opts.videoStream,
+      opts.iceServers ?? []
+    )
+    this.pc = pc;
 
     // Connect to SDP negotiation WebSocket
-    // Waits until WebSocket is open before returning (important so we can send messages)
-    await this.sdpClient.connect(opts.sdpUrl)
+    // Waits until WebSocket is in OPEN state before returning
+    // (important so we can safely send messages)
+    await this.sdpClient.beginNegotiation(opts.sdpUrl)
 
     // Create SDP offer message and set local description
     // (note: This step has to be done after sending the video stream--
@@ -73,16 +57,23 @@ export class SignalingStore {
     }
   }
 
-  // Wires the user video feed into the RTCPeerConnection
-  async setVideoStream(stream: MediaStream) {
-    if (!this.pc) throw new Error('PC not initialized');
+  async initPeerConnection(
+    stream: MediaStream,
+    iceServers: RTCIceServer[]
+  ) : Promise<RTCPeerConnection> {
+    const pc = new RTCPeerConnection({iceServers});
+
     const videoTrack = stream.getVideoTracks()[0];
-    if (!videoTrack) return;
+    if (!videoTrack) {
+      throw new Error('No video track found');
+    }
   
     // find or create the sendonly transceiver
     // Set up transceiver for webcam feed (send-only for now)
-    let tx = this.pc.addTransceiver("video", { direction: "sendonly" })
+    let tx = pc.addTransceiver("video", { direction: "sendonly" })
     await tx.sender.replaceTrack(videoTrack);
+
+    return pc;
   }
 
   async handleServerMessage(msg: SDPMsg) {

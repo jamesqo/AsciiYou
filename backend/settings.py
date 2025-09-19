@@ -35,6 +35,9 @@ class AppSettings(BaseSettings):
 
     # Signaling
     sdp_ws_base: AnyUrl = "ws://localhost:3000/sdp"
+    # Persistence
+    redis_url: str = "redis://localhost:6379/0"
+    huddle_ttl_seconds: int = 3600
 
     @classmethod
     def settings_customise_sources(cls, settings_cls, init_settings, env_settings, dotenv_settings, file_secret_settings):

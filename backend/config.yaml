@@ -6,5 +6,7 @@ jwt_secret: dev-secret-change-me
 jwt_ttl_seconds: 300
 
 sdp_ws_base: ws://localhost:3000/sdp
+redis_url: redis://localhost:6379/0
+huddle_ttl_seconds: 3600
 
 

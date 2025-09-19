@@ -1,14 +1,16 @@
 import asyncio
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 from aiortc import RTCConfiguration, RTCIceServer, RTCPeerConnection, RTCSessionDescription
 from aiortc.sdp import candidate_from_sdp
 import jwt
 from backend.settings import settings
+from backend.deps import get_huddle_repo
+from backend.persistence.huddles import HuddleRepository
 
 router = APIRouter()
 
 @router.websocket("/sdp")
-async def sdp_negotiation(websocket: WebSocket):
+async def sdp_negotiation(websocket: WebSocket, repo: HuddleRepository = Depends(get_huddle_repo)):
     # Validate token and extract claims
     token = websocket.query_params.get("token")
     if not token:
@@ -21,6 +23,11 @@ async def sdp_negotiation(websocket: WebSocket):
         return
     huddle_id = claims.get("hid")
     participant_id = claims.get("pid")
+    # Validate huddle exists
+    h = await repo.get(huddle_id)
+    if not h:
+        await websocket.close(code=1008)
+        return
 
     await websocket.accept()
     print(f"Accepted SDP websocket: hud={huddle_id} part={participant_id}")

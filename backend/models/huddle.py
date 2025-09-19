@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Dict
+from typing import Any
 
-from pydantic import BaseModel, AnyUrl, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
-
-from backend.models.participant import Participant
 
 
 class Huddle(BaseModel):
@@ -14,5 +12,4 @@ class Huddle(BaseModel):
     id: str
     created_at: datetime
     expires_at: datetime
-    participants: Dict[str, Participant] = Field(default_factory=dict)
 

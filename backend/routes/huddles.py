@@ -36,14 +36,17 @@ async def create_huddle(
     participant_id = new_id("p")
     exp = time.time() + settings.huddle_ttl_seconds
 
-    # persist huddle with TTL
-    await huddle_repo.create(Huddle(
+    participant = Participant(id=participant_id, role="host")
+    huddle = Huddle(
         id=huddle_id,
         created_at=datetime.now(timezone.utc),
         expires_at=datetime.fromtimestamp(exp, tz=timezone.utc),
-        participants={},
-    ), settings.huddle_ttl_seconds)
-    await participant_repo.add(huddle_id, Participant(id=participant_id, role="host"), settings.huddle_ttl_seconds)
+        participants=None,
+    ), settings.huddle_ttl_seconds
+
+    await huddle_repo.create(huddle)
+    await participant_repo.add(huddle_id, participant, settings.huddle_ttl_seconds)
+
     token = jwt.encode({
         "hid": huddle_id,
         "pid": participant_id,
@@ -74,7 +77,10 @@ async def join_huddle(
         raise HTTPException(status_code=404, detail="Huddle not found or expired")
 
     participant_id = new_id("p")
-    await participant_repo.add(huddle_id, Participant(id=participant_id, role="guest"), int((h.expires_at.timestamp() - time.time()) or 0))
+    participant = Participant(id=participant_id, role="guest")
+
+    await participant_repo.add(huddle_id, participant, int((h.expires_at.timestamp() - time.time()) or 0))
+    
     token = jwt.encode({
         "hid": huddle_id,
         "pid": participant_id,

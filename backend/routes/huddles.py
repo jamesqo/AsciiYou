@@ -1,11 +1,11 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, AnyUrl, ConfigDict
 from pydantic.alias_generators import to_camel
-from typing import Dict, Set, Literal
+from typing import Dict, Literal
 import secrets
 import time
 import jwt
-from backend.config import JWT_SECRET, JWT_TTL_SECONDS
+from backend.settings import settings
 
 
 router = APIRouter()
@@ -48,15 +48,15 @@ def create_huddle() -> JoinOk:
         "pid": participant_id,
         "role": "host",
         "iat": int(time.time()),
-        "exp": int(time.time()) + JWT_TTL_SECONDS,
-    }, JWT_SECRET, algorithm="HS256")
+        "exp": int(time.time()) + settings.jwt_ttl_seconds,
+    }, settings.jwt_secret, algorithm="HS256")
     return JoinOk(
         ok=True,
         huddle_id=huddle_id,
         participant_id=participant_id,
         role="host",
         huddle_expiry=isotime(exp),
-        sdp_negotiation_url=f"ws://localhost:3000/sdp?token={token}",
+        sdp_negotiation_url=f"{settings.sdp_ws_base}?token={token}",
     )
 
 
@@ -71,14 +71,14 @@ def join_huddle(huddle_id: str) -> JoinOk:
         "pid": participant_id,
         "role": "guest",
         "iat": int(time.time()),
-        "exp": int(time.time()) + JWT_TTL_SECONDS,
-    }, JWT_SECRET, algorithm="HS256")
+        "exp": int(time.time()) + settings.jwt_ttl_seconds,
+    }, settings.jwt_secret, algorithm="HS256")
     return JoinOk(
         ok=True,
         huddle_id=huddle_id,
         participant_id=participant_id,
         role="guest",
         huddle_expiry=isotime(exp),
-        sdp_negotiation_url=f"ws://localhost:3000/sdp?token={token}",
+        sdp_negotiation_url=f"{settings.sdp_ws_base}?token={token}",
     )
 

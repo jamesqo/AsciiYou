@@ -3,10 +3,9 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from aiortc import RTCConfiguration, RTCIceServer, RTCPeerConnection, RTCSessionDescription
 from aiortc.sdp import candidate_from_sdp
 import jwt
-from backend.config import JWT_SECRET
+from backend.settings import settings
 
 router = APIRouter()
-
 
 @router.websocket("/sdp")
 async def sdp_negotiation(websocket: WebSocket):
@@ -16,8 +15,8 @@ async def sdp_negotiation(websocket: WebSocket):
         await websocket.close(code=1008)
         return
     try:
-        claims = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
-    except Exception:
+        claims = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+    except jwt.PyJWTError:
         await websocket.close(code=1008)
         return
     huddle_id = claims.get("hid")
@@ -56,27 +55,12 @@ async def sdp_negotiation(websocket: WebSocket):
     
     @pc.on("track")
     def on_track(track):
-        print("on_track fired:", track.kind)
         if track.kind == "video":
             async def reader():
                 while True:
                     _ = await track.recv()  # get next frame
-                    print("hello world")
+                    # print("hello world")
             asyncio.create_task(reader())
-
-    """
-    # TODO: for testing, remove
-    dc = pc.createDataChannel("control")
-
-    @dc.on("open")
-    def _():
-        dc.send("hello from server")
-
-    @dc.on("message")
-    def on_msg(msg):
-        print("DC recv:", msg)
-    # end TODO
-    """
 
     try:
         while True:

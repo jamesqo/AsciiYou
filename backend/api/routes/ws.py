@@ -12,8 +12,8 @@ from persistence.huddle_repository import HuddleRepository
 
 router = APIRouter()
 
-@router.websocket("/sdp")
-async def sdp_negotiation(
+@router.websocket("/ws")
+async def signaling_ws(
     websocket: WebSocket,
     huddle_repo: HuddleRepository = Depends(get_huddle_repo),
     participant_repo: ParticipantRepository = Depends(get_participant_repo),
@@ -37,7 +37,11 @@ async def sdp_negotiation(
         return
 
     await websocket.accept()
-    print(f"Accepted SDP websocket: hud={huddle_id} part={participant_id}")
+    print(f"Accepted SDP websocket: hid={huddle_id} pid={participant_id}")
+
+    # TODO: everything after here needs to be changed?
+    # - remove aiortc dependency
+    # - send messages relevant to setting up connection with SFU media server
 
     # Maintain local membership set via repository events
     # TODO: perhaps this should be its own class in the service layer?
@@ -125,7 +129,7 @@ async def sdp_negotiation(
             else:
                 pass
     except WebSocketDisconnect:
-        print(f"Web socket disconnected: hud={huddle_id} part={participant_id}")
+        print(f"Web socket disconnected: hid={huddle_id} pid={participant_id}")
     finally:
         listener_task.cancel()
         with suppress(Exception):

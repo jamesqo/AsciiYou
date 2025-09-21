@@ -9,14 +9,9 @@ from persistence.huddle_repository import HuddleRepository
 from models.huddle import Huddle
 from models.participant import Participant
 from persistence.participant_repository import ParticipantRepository
-from models.responses import JoinOk
-
- 
-
+from models.rest import JoinOk
 
 router = APIRouter()
-
-# Deprecated in-memory storage; TTL is governed by settings and Redis key expiry
 
 def isotime(seconds: float) -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(seconds))
@@ -61,7 +56,7 @@ async def create_huddle(
         participant_id=participant_id,
         role="host",
         huddle_expiry=isotime(exp),
-        sdp_token=token,
+        streaming_token=token,
     )
 
 
@@ -98,6 +93,6 @@ async def join_huddle(
         participant_id=participant_id,
         role="guest",
         huddle_expiry=isotime(h.expires_at.timestamp()),
-        sdp_token=token,
+        streaming_token=token,
     )
 

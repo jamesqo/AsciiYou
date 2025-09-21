@@ -2,15 +2,15 @@ import { ControlClient } from "@/service/ControlClient";
 import { makeAutoObservable } from "mobx";
 
 type StreamingOpts = {
-  videoStream: MediaStream;
   token: string;
+  videoStream: MediaStream;
 };
 
-export class SignalingStore {
-  private readonly client: ControlClient;
+export class StreamingStore {
+  private readonly ctrl: ControlClient;
 
   constructor() {
-    this.client = new ControlClient({
+    this.ctrl = new ControlClient({
       onOpen: () => console.log('Control channel opened'),
       onClose: () => console.log('Control channel closed'),
       onError: (err) => console.error('Control channel error', err),
@@ -20,7 +20,7 @@ export class SignalingStore {
   }
 
   async startStreaming(opts: StreamingOpts) {
-    await this.client.doHandshake(opts.token)
-    await this.client.produceTrack(opts.videoStream.getVideoTracks()[0])
+    await this.ctrl.doHandshake(opts.token)
+    await this.ctrl.produceTrack(opts.videoStream.getVideoTracks()[0])
   }
 }

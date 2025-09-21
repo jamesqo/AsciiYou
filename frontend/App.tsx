@@ -79,7 +79,7 @@ export default function App() {
         // Initialize RTCPeerConnection and start SDP negotiation with server
         await signalingStore.startStreaming({
             videoStream,
-            sdpToken: joinOk.sdpToken
+            token: joinOk.streamingToken
         })
     }
 
@@ -94,7 +94,7 @@ export default function App() {
         // Initialize RTCPeerConnection and start SDP negotiation with server
         await signalingStore.startStreaming({
             videoStream,
-            sdpToken: joinOk.sdpToken
+            sdpToken: joinOk.streamingToken
         })
     }
 

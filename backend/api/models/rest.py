@@ -13,6 +13,6 @@ class JoinOk(CamelCase):
     participant_id: str
     role: Literal["host", "guest"]
     huddle_expiry: str
-    sdp_token: str
+    streaming_token: str
 
 

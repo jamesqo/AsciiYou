@@ -11,15 +11,18 @@ from backend.models.huddle import Huddle
 class HuddleRepository(ABC):
     @abstractmethod
     async def create(self, huddle: Huddle, ttl_seconds: int) -> None:
+        """Creates a new Huddle."""
         ...
 
     @abstractmethod
     async def get(self, huddle_id: str) -> Optional[Huddle]:
+        """Gets a Huddle from its ID."""
         ...
 
 
     @abstractmethod
     async def delete(self, huddle_id: str) -> None:
+        """Deletes a Huddle."""
         ...
 
 

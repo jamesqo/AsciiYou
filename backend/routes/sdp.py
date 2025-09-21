@@ -72,9 +72,9 @@ async def sdp_negotiation(
                 while True:
                     _ = await track.recv()  # get next frame
                     # print("hello world")
-                    # TODO: broadcast to other participants in the room
-                    current_participants = await participant_repo.list_by_huddle(huddle_id) # TODO: perhaps there should be something like a huddle.get_participants() method to wrap this?
-                    print([p.id for p in current_participants])
+                    # TODO: example: enumerate participant IDs in this huddle (set membership)
+                    ids = await participant_repo.list_members(huddle_id)
+                    print(ids)
             asyncio.create_task(reader())
 
     try:

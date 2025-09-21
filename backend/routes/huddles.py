@@ -9,7 +9,7 @@ from backend.persistence.huddle_repository import HuddleRepository
 from backend.models.huddle import Huddle
 from backend.models.participant import Participant
 from backend.persistence.participant_repository import ParticipantRepository
-from backend.models.join_ok import JoinOk
+from backend.models.responses import JoinOk
 
  
 
@@ -45,7 +45,7 @@ async def create_huddle(
     )
 
     await huddle_repo.create(huddle, settings.huddle_ttl_seconds)
-    await participant_repo.add(huddle_id, participant, settings.huddle_ttl_seconds)
+    await participant_repo.add(huddle_id, participant)
 
     token = jwt.encode({
         "hid": huddle_id,
@@ -79,7 +79,10 @@ async def join_huddle(
     participant_id = new_id("p")
     participant = Participant(id=participant_id, role="guest")
 
-    await participant_repo.add(huddle_id, participant, int((h.expires_at.timestamp() - time.time()) or 0))
+    try:
+        await participant_repo.add(huddle_id, participant)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Huddle not found or expired")
     
     token = jwt.encode({
         "hid": huddle_id,

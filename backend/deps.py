@@ -18,4 +18,3 @@ def get_huddle_repo() -> HuddleRepository:
 def get_participant_repo() -> ParticipantRepository:
     return _participant_repo
 
-

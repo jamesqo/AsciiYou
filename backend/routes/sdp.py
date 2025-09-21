@@ -1,4 +1,6 @@
 import asyncio
+import json
+from contextlib import suppress
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 from aiortc import RTCConfiguration, RTCIceServer, RTCPeerConnection, RTCSessionDescription
 from aiortc.sdp import candidate_from_sdp
@@ -14,7 +16,7 @@ router = APIRouter()
 async def sdp_negotiation(
     websocket: WebSocket,
     huddle_repo: HuddleRepository = Depends(get_huddle_repo),
-    participant_repo: ParticipantRepository = Depends(get_participant_repo)
+    participant_repo: ParticipantRepository = Depends(get_participant_repo),
 ):
     # Validate token and extract claims
     token = websocket.query_params.get("token")
@@ -36,6 +38,22 @@ async def sdp_negotiation(
 
     await websocket.accept()
     print(f"Accepted SDP websocket: hud={huddle_id} part={participant_id}")
+
+    # Maintain local membership set via repository events
+    # TODO: perhaps this should be its own class in the service layer?
+    # something like LocalMembershipCache?
+    members = set(await participant_repo.list_members(huddle_id))
+
+    async def membership_listener():
+        async for evt in participant_repo.member_events(huddle_id):
+            op = evt.get("op")
+            pid = evt.get("participant_id")
+            if op == "add" and pid:
+                members.add(pid)
+            elif op == "remove" and pid:
+                members.discard(pid)
+
+    listener_task = asyncio.create_task(membership_listener())
 
     pc = RTCPeerConnection(
         RTCConfiguration(
@@ -71,10 +89,8 @@ async def sdp_negotiation(
             async def reader():
                 while True:
                     _ = await track.recv()  # get next frame
-                    # print("hello world")
-                    # TODO: example: enumerate participant IDs in this huddle (set membership)
-                    ids = await participant_repo.list_members(huddle_id)
-                    print(ids)
+                    # Example: enumerate participant IDs in this huddle from local, up-to-date set
+                    print(list(members))
             asyncio.create_task(reader())
 
     try:
@@ -111,4 +127,7 @@ async def sdp_negotiation(
     except WebSocketDisconnect:
         print(f"Web socket disconnected: hud={huddle_id} part={participant_id}")
     finally:
+        listener_task.cancel()
+        with suppress(Exception):
+            await listener_task
         await pc.close()

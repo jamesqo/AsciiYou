@@ -1,0 +1,12 @@
+[MESSAGES CONTROL]
+disable=
+    missing-module-docstring,
+    missing-function-docstring,
+    missing-class-docstring,
+    unused-import,
+    too-few-public-methods,
+    line-too-long,
+    wrong-import-order,
+    trailing-newlines,
+    trailing-whitespace,
+    unnecessary-ellipsis

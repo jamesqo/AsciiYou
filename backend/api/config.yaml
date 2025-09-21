@@ -6,4 +6,6 @@ jwt_ttl_seconds: 300
 redis_url: redis://localhost:6379/0
 huddle_ttl_seconds: 3600
 
+media_server_url: http://localhost:7001
+
 

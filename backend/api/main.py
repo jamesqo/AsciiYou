@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routes.huddles import router as huddles_router
-from routes.sdp import router as sdp_router
+from routes.ws import router as ws_router
 from settings import settings
 
 
@@ -17,4 +17,4 @@ app.add_middleware(
 )
 
 app.include_router(huddles_router)
-app.include_router(sdp_router)
+app.include_router(ws_router)

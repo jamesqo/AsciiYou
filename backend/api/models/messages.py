@@ -1,0 +1,125 @@
+from __future__ import annotations
+
+from enum import Enum
+from typing import Any, Annotated, Literal, Union
+
+from pydantic import Field
+
+from models.camel_case import CamelCase
+
+class ControlState(Enum):
+    ACCEPTED_WS = 0
+    SENT_HELLO = 1
+    WAITING_FOR_TRANSPORT_REQUEST = 2
+    WAITING_FOR_TRANSPORT_CONNECT = 3
+    CONNECTED_TO_MEDIA_SERVER = 4
+
+# ===== Client -> Server messages =====
+
+
+class CreateTransport(CamelCase):
+    type: Literal["createTransport"]
+    direction: Literal["send", "recv"] | None = None
+
+
+class ConnectTransport(CamelCase):
+    type: Literal["connectTransport"]
+    transport_id: str
+    dtls_parameters: dict[str, Any]
+
+
+class Produce(CamelCase):
+    type: Literal["produce"]
+    transport_id: str
+    kind: Literal["audio", "video"]
+    rtp_parameters: dict[str, Any]
+
+
+class Consume(CamelCase):
+    type: Literal["consume"]
+    transport_id: str
+    producer_id: str
+    rtp_capabilities: dict[str, Any]
+
+
+class ProducerOp(CamelCase):
+    type: Literal["producerOp"]
+    op: Literal["pause", "resume", "close"]
+    producer_id: str
+
+
+class ConsumerOp(CamelCase):
+    type: Literal["consumerOp"]
+    op: Literal["pause", "resume", "close"]
+    consumer_id: str
+
+
+class Close(CamelCase):
+    type: Literal["close"]
+
+
+ClientMessage = Annotated[
+    Union[
+        CreateTransport,
+        ConnectTransport,
+        Produce,
+        Consume,
+        ProducerOp,
+        ConsumerOp,
+        Close,
+    ],
+    Field(discriminator="type"),
+]
+
+
+# ===== Server -> Client messages =====
+
+
+class ServerHello(CamelCase):
+    type: Literal["serverHello"] = "serverHello"
+    huddle_id: str
+    participant_id: str
+
+
+class RouterRtpCapabilities(CamelCase):
+    type: Literal["routerRtpCapabilities"] = "routerRtpCapabilities"
+    data: dict[str, Any]
+
+
+class TransportCreated(CamelCase):
+    type: Literal["transportCreated"] = "transportCreated"
+    data: dict[str, Any]
+
+
+class Ack(CamelCase):
+    type: Literal["ack"] = "ack"
+    op: str
+    transport_id: str | None = None
+    producer_id: str | None = None
+    consumer_id: str | None = None
+
+
+class Produced(CamelCase):
+    type: Literal["produced"] = "produced"
+    data: dict[str, Any]
+
+
+class Consumed(CamelCase):
+    type: Literal["consumed"] = "consumed"
+    data: dict[str, Any]
+
+
+# Discriminated union for server -> client
+ServerMessage = Annotated[
+    Union[
+        ServerHello,
+        RouterRtpCapabilities,
+        TransportCreated,
+        Ack,
+        Produced,
+        Consumed,
+    ],
+    Field(discriminator="type"),
+]
+
+

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from redis.asyncio import from_url  # type: ignore[import-not-found]
+from redis.asyncio import from_url
 
 from settings import settings
 from persistence.huddle_repository import RedisHuddleRepository, HuddleRepository

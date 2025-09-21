@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Optional, Dict, Any, AsyncIterator
 import json
 
-from redis.asyncio import Redis  # type: ignore[import-not-found]
+from redis.asyncio import Redis
 
 from models.participant import Participant
 
@@ -71,7 +71,7 @@ class RedisParticipantRepository(ParticipantRepository):
         # ensure 'id' is present in hash for completeness
         data.setdefault('id', participant.id)
         if data:
-            await self._redis.hset(pkey, mapping=data)  # type: ignore[arg-type]
+            await self._redis.hset(pkey, mapping=data)
         await self._redis.sadd(skey, participant.id)
 
         # ensure the participant and set expire with the huddle

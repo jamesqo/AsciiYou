@@ -6,9 +6,9 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
+from models.camel_case import CamelCase
 
-class Huddle(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
+class Huddle(CamelCase):
     id: str
     created_at: datetime
     expires_at: datetime

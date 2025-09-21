@@ -1,19 +1,19 @@
 import asyncio
-import json
 from contextlib import suppress
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
-from aiortc import RTCConfiguration, RTCIceServer, RTCPeerConnection, RTCSessionDescription
-from aiortc.sdp import candidate_from_sdp
 import jwt
+from models.messages import ClientMessage
+from service.control import ControlMessageHandler
 from persistence.participant_repository import ParticipantRepository
 from settings import settings
 from deps import get_huddle_repo, get_participant_repo
+from pydantic import TypeAdapter
 from persistence.huddle_repository import HuddleRepository
 
 router = APIRouter()
 
 @router.websocket("/ws")
-async def signaling_ws(
+async def control_ws(
     websocket: WebSocket,
     huddle_repo: HuddleRepository = Depends(get_huddle_repo),
     participant_repo: ParticipantRepository = Depends(get_participant_repo),
@@ -37,11 +37,7 @@ async def signaling_ws(
         return
 
     await websocket.accept()
-    print(f"Accepted SDP websocket: hid={huddle_id} pid={participant_id}")
-
-    # TODO: everything after here needs to be changed?
-    # - remove aiortc dependency
-    # - send messages relevant to setting up connection with SFU media server
+    print(f"Accepted control websocket: hid={huddle_id} pid={participant_id}")
 
     # Maintain local membership set via repository events
     # TODO: perhaps this should be its own class in the service layer?
@@ -59,79 +55,23 @@ async def signaling_ws(
 
     listener_task = asyncio.create_task(membership_listener())
 
-    pc = RTCPeerConnection(
-        RTCConfiguration(
-            iceServers=[
-                RTCIceServer(urls="stun:stun.l.google.com:19302")
-            ]
-        )
-    )
-    pc.addTransceiver("video") # recvonly by default
-
-    @pc.on("icecandidate")
-    async def on_icecandidate(candidate):
-        if candidate is None:
-            return
-
-        await websocket.send_json({
-            "type": "candidate",
-            "candidate": {
-                "candidate": candidate.to_sdp(),
-                "sdpMLineIndex": candidate.sdpMLineIndex or 0,
-            }
-        })
-
-    @pc.on("icegatheringstatechange")
-    def _(): print("gather:", pc.iceGatheringState)
-
-    @pc.on("iceconnectionstatechange")
-    def _(): print("conn:", pc.iceConnectionState)
-    
-    @pc.on("track")
-    def on_track(track):
-        if track.kind == "video":
-            async def reader():
-                while True:
-                    _ = await track.recv()  # get next frame
-                    # Example: enumerate participant IDs in this huddle from local, up-to-date set
-                    print(list(members))
-            asyncio.create_task(reader())
-
     try:
-        while True:
-            msg = await websocket.receive_json()
-            mtype = msg.get("type")
-            if mtype == "offer":
-                # Handle initial SDP offer from client
-                sdp = msg.get("sdp")
-                if not sdp:
-                    await websocket.close(code=1002)
-                    break
-                # Update RTCPeerConnection to reflect remote offer
-                # Send back an answer using the usual flow
-                await pc.setRemoteDescription(RTCSessionDescription(sdp=sdp, type="offer"))
-                answer = await pc.createAnswer()
-                await pc.setLocalDescription(answer)
-                await websocket.send_json({
-                    "type": "answer",
-                    "sdp": pc.localDescription.sdp,
-                })
-            elif mtype == "candidate":
-                cand = msg.get("candidate") or {}
-                sdp_line = cand.get("candidate")
-                if sdp_line:
-                    c = candidate_from_sdp(sdp_line)
-                    c.sdpMLineIndex = cand.get("sdpMLineIndex", 0)
-                    print("Adding ICE candidate:", c)
-                    await pc.addIceCandidate(c)
-            elif mtype == "close":
-                break
-            else:
-                pass
+        handler = ControlMessageHandler(
+            ws=websocket,
+            hid=huddle_id,
+            pid=participant_id
+        )
+        async with handler:
+            await handler.begin_handshake()
+            adapter = TypeAdapter(ClientMessage)
+            while True:
+                raw = await websocket.receive_json()
+                # Validate into a typed union instance
+                msg = adapter.validate_python(raw)
+                await handler.handle_message(msg)
     except WebSocketDisconnect:
         print(f"Web socket disconnected: hid={huddle_id} pid={participant_id}")
     finally:
         listener_task.cancel()
         with suppress(Exception):
             await listener_task
-        await pc.close()

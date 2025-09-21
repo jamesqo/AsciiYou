@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from redis.asyncio import Redis  # type: ignore[import-not-found]
+from redis.asyncio import Redis
 
 from models.huddle import Huddle
 

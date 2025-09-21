@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import List
 
 import yaml
-from pydantic_settings import BaseSettings, SettingsConfigDict  # type: ignore[import-not-found]
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 def yaml_config_settings_source(_: type[BaseSettings]):
@@ -35,6 +35,9 @@ class AppSettings(BaseSettings):
     # Persistence
     redis_url: str = "redis://localhost:6379/0"
     huddle_ttl_seconds: int = 3600
+
+    # Media
+    media_server_url: str | None = None
 
     @classmethod
     def settings_customise_sources(cls, settings_cls, init_settings, env_settings, dotenv_settings, file_secret_settings):

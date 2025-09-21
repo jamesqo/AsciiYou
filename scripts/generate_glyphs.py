@@ -245,7 +245,7 @@ def main() -> None:
             s = "".join([c * 2 for c in s])
         if len(s) != 6:
             raise ValueError("Color must be #rgb or #rrggbb")
-        return tuple(int(s[i : i + 2], 16) for i in (0, 2, 4))  # type: ignore[return-value]
+        return tuple(int(s[i : i + 2], 16) for i in (0, 2, 4))
 
     fg = parse_hex_color(args.fg)
     bg = parse_hex_color(args.bg)

@@ -5,7 +5,7 @@ from typing import Optional
 
 from redis.asyncio import Redis  # type: ignore[import-not-found]
 
-from backend.models.huddle import Huddle
+from models.huddle import Huddle
 
 
 class HuddleRepository(ABC):

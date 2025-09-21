@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from redis.asyncio import from_url  # type: ignore[import-not-found]
 
-from backend.settings import settings
-from backend.persistence.huddle_repository import RedisHuddleRepository, HuddleRepository
-from backend.persistence.participant_repository import RedisParticipantRepository, ParticipantRepository
+from settings import settings
+from persistence.huddle_repository import RedisHuddleRepository, HuddleRepository
+from persistence.participant_repository import RedisParticipantRepository, ParticipantRepository
 
 
 _redis = from_url(settings.redis_url, decode_responses=False)

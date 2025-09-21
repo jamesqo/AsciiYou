@@ -20,15 +20,12 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["frontend/*"]
+      "@/*": ["./*"]
     }
   },
   "include": [
     "**/*.ts",
     "**/*.tsx",
     "**/*.d.ts"
-  ],
-  "exclude": [
-    "venv"
   ]
 }

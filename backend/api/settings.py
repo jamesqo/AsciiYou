@@ -5,13 +5,12 @@ from pathlib import Path
 from typing import List
 
 import yaml
-from pydantic import AnyUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict  # type: ignore[import-not-found]
 
 
 def yaml_config_settings_source(_: type[BaseSettings]):
     def _source() -> dict:
-        path = Path(os.getenv("APP_CONFIG_FILE", "backend/config.yaml"))
+        path = Path(os.getenv("APP_CONFIG_FILE", "backend/api/config.yaml"))
         if not path.exists():
             return {}
         data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}

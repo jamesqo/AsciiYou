@@ -5,10 +5,10 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 from aiortc import RTCConfiguration, RTCIceServer, RTCPeerConnection, RTCSessionDescription
 from aiortc.sdp import candidate_from_sdp
 import jwt
-from backend.persistence.participant_repository import ParticipantRepository
-from backend.settings import settings
-from backend.deps import get_huddle_repo, get_participant_repo
-from backend.persistence.huddle_repository import HuddleRepository
+from persistence.participant_repository import ParticipantRepository
+from settings import settings
+from deps import get_huddle_repo, get_participant_repo
+from persistence.huddle_repository import HuddleRepository
 
 router = APIRouter()
 

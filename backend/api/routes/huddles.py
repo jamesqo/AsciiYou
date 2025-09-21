@@ -3,13 +3,13 @@ import secrets
 import time
 import jwt
 from datetime import datetime, timezone
-from backend.settings import settings
-from backend.deps import get_huddle_repo, get_participant_repo
-from backend.persistence.huddle_repository import HuddleRepository
-from backend.models.huddle import Huddle
-from backend.models.participant import Participant
-from backend.persistence.participant_repository import ParticipantRepository
-from backend.models.responses import JoinOk
+from settings import settings
+from deps import get_huddle_repo, get_participant_repo
+from persistence.huddle_repository import HuddleRepository
+from models.huddle import Huddle
+from models.participant import Participant
+from persistence.participant_repository import ParticipantRepository
+from models.responses import JoinOk
 
  
 

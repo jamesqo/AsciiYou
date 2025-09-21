@@ -6,7 +6,7 @@ import json
 
 from redis.asyncio import Redis  # type: ignore[import-not-found]
 
-from backend.models.participant import Participant
+from models.participant import Participant
 
 
 class ParticipantRepository(ABC):

@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.routes.huddles import router as huddles_router
-from backend.routes.sdp import router as sdp_router
-from backend.settings import settings
+from routes.huddles import router as huddles_router
+from routes.sdp import router as sdp_router
+from settings import settings
 
 
 app = FastAPI(title="AsciiYou Backend", version="0.1.0")

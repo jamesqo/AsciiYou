@@ -1,3 +1,7 @@
 #!/bin/bash
 
-uvicorn backend.main:app --reload --port 3000
+# Activate the virtual environment
+source venv/bin/activate
+pip install -r requirements.txt
+# Start the API server
+uvicorn main:app --app-dir backend/api --reload --port 3000

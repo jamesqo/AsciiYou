@@ -19,7 +19,7 @@ import { Controls } from '@/components/Controls'
 import { SDPClient } from './service/SDPClient'
 
 export default function App() {
-    const { uiStore, huddleStore, signalingStore } = useStores()
+    const { uiStore, huddleStore, streamingStore } = useStores()
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
     const videoRef = useRef<HTMLVideoElement | null>(null)
     const rendererRef = useRef<ASCIIRenderer | null>(null)
@@ -77,7 +77,7 @@ export default function App() {
         // Wire user video feed into the RTCPeerConnection
         const videoStream = videoRef.current!.srcObject as MediaStream
         // Initialize RTCPeerConnection and start SDP negotiation with server
-        await signalingStore.startStreaming({
+        await streamingStore.startStreaming({
             videoStream,
             token: joinOk.streamingToken
         })
@@ -92,9 +92,9 @@ export default function App() {
         // Wire user video feed into the RTCPeerConnection
         const videoStream = videoRef.current!.srcObject as MediaStream
         // Initialize RTCPeerConnection and start SDP negotiation with server
-        await signalingStore.startStreaming({
+        await streamingStore.startStreaming({
             videoStream,
-            sdpToken: joinOk.streamingToken
+            token: joinOk.streamingToken
         })
     }
 

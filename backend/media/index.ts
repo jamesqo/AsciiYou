@@ -96,7 +96,7 @@ app.post('/huddles/:hid/transports', async (req: Request, res: Response) => {
   transport.on('dtlsstatechange', (state) => {
     if (state === 'closed' || state === 'failed') transport.close();
   });
-  transport.on('close', () => peer.transports.delete(transport.id));
+  transport.on('@close', () => peer.transports.delete(transport.id));
 
   ok(res, {
     id: transport.id,
@@ -135,7 +135,7 @@ app.post('/huddles/:hid/produce', async (req: Request, res: Response) => {
   const producer = await transport.produce({ kind, rtpParameters, appData: { ...appData, hid, peerId } });
   peer.producers.set(producer.id, producer);
   producer.on('transportclose', () => producer.close());
-  producer.on('close', () => peer.producers.delete(producer.id));
+  producer.on('@close', () => peer.producers.delete(producer.id));
   ok(res, { id: producer.id });
 });
 
@@ -156,7 +156,7 @@ app.post('/huddles/:hid/consume', async (req: Request, res: Response) => {
   peer.consumers.set(consumer.id, consumer);
   consumer.on('transportclose', () => consumer.close());
   consumer.on('producerclose', () => consumer.close());
-  consumer.on('close', () => peer.consumers.delete(consumer.id));
+  consumer.on('@close', () => peer.consumers.delete(consumer.id));
 
   ok(res, {
     id: consumer.id,

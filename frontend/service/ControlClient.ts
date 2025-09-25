@@ -69,7 +69,11 @@ export class ControlClient {
     // Wait for router RTP caps and load device
     const routerCapsMsg: any = await this.waitFor((m) => m?.type === "routerRtpCapabilities");
     this.device = new Device();
-    await this.device.load({ routerRtpCapabilities: routerCapsMsg.data });
+    await this.device.load({
+      routerRtpCapabilities: routerCapsMsg.data.routerRtpCapabilities
+    });
+
+    console.log("Loaded remote capabilities");
   }
 
   close(code = 1000, reason = "client-close") {
@@ -106,6 +110,8 @@ export class ControlClient {
 
   private async ensureSendTransport() {
     if (this.sendTransport) return;
+
+    console.log("Initializing send transport");
     const created: { data: TransportInfo } = await this.request({ type: "createTransport", direction: "send" });
     const info = created.data;
     this.sendTransport = this.device!.createSendTransport({
@@ -116,12 +122,14 @@ export class ControlClient {
     });
     this.sendTransport.on("connect", async ({ dtlsParameters }: any, callback: () => void, errback: (err: any) => void) => {
       try {
+        console.log("send transport connected");
         await this.request({ type: "connectTransport", transportId: info.id, dtlsParameters });
         callback();
       } catch (e) { errback(e); }
     });
     this.sendTransport.on("produce", async ({ kind, rtpParameters }: any, callback: (arg: { id: string }) => void, errback: (err: any) => void) => {
       try {
+        console.log("producing track");
         const resp: any = await this.request({ type: "produce", transportId: info.id, kind, rtpParameters });
         callback({ id: resp.data.id });
       } catch (e) { errback(e); }
@@ -140,6 +148,7 @@ export class ControlClient {
     });
     this.recvTransport.on("connect", async ({ dtlsParameters }: any, callback: () => void, errback: (err: any) => void) => {
       try {
+        console.log("recv transport connected");
         await this.request({ type: "connectTransport", transportId: info.id, dtlsParameters });
         callback();
       } catch (e) { errback(e); }
@@ -150,6 +159,7 @@ export class ControlClient {
   private handleIncoming(ev: MessageEvent) {
     try {
       const msg = JSON.parse(ev.data as string);
+      console.log("Received WS message", msg);
       // resolve waiter if any matches
       const i = this.waiters.findIndex((w) => w.match(msg));
       if (i >= 0) {
@@ -176,6 +186,7 @@ export class ControlClient {
       };
       this.waiters.push({ match, resolve, reject });
     });
+    console.log("Sending WS message", payload);
     this.ws.send(JSON.stringify(payload));
     return p;
   }

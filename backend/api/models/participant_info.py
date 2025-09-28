@@ -8,7 +8,7 @@ from pydantic.alias_generators import to_camel
 from models.camel_case import CamelCase
 
 
-class Participant(CamelCase):
+class ParticipantInfo(CamelCase):
     id: str
     role: Literal["host", "guest"]
 

@@ -109,6 +109,13 @@ class Consumed(CamelCase):
     data: dict[str, Any]
 
 
+# Event: a new producer has been created by a participant in the huddle
+class NewProducer(CamelCase):
+    type: Literal["newProducer"] = "newProducer"
+    huddle_id: str
+    producer_id: str
+
+
 # Discriminated union for server -> client
 ServerMessage = Annotated[
     Union[
@@ -118,6 +125,7 @@ ServerMessage = Annotated[
         Ack,
         Produced,
         Consumed,
+        NewProducer,
     ],
     Field(discriminator="type"),
 ]

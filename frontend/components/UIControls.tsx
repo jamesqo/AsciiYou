@@ -2,7 +2,7 @@ import React from 'react'
 import { observer } from 'mobx-react-lite'
 import { useStores } from '@/stores/StoreContext'
 
-export const Controls = observer(function Controls() {
+export const UIControls = observer(function UIControls() {
   const { uiStore: ui } = useStores()
   return (
     <div className="controls">

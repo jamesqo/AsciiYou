@@ -15,7 +15,7 @@ import {
 } from '@/util/debugHelpers'
 import type { DebugTools } from '@/types'
 import { StoreProvider, useStores } from '@/stores/StoreContext'
-import { Controls } from '@/components/Controls'
+import { UIControls } from '@/components/UIControls'
 import { SDPClient } from './service/SDPClient'
 
 export default function App() {
@@ -107,7 +107,7 @@ export default function App() {
         <div className="app">
             <div className="header">
                 <div className="title">ASCII Art Webcam</div>
-                <Controls />
+                <UIControls />
                 <button onClick={newHuddleClicked}>New huddle</button>
                 <button onClick={joinHuddleClicked}>Join huddle</button>
             </div>

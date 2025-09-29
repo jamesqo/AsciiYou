@@ -134,8 +134,9 @@ export class ControlClient {
     });
     this.sendTransport.on("connect", async ({ dtlsParameters }: any, callback: () => void, errback: (err: any) => void) => {
       try {
-        console.log("send transport connected");
+        console.log("send transport - starting dtls handshake");
         await this.request({ type: "connectTransport", transportId: info.id, dtlsParameters });
+        console.log("send transport - connected");
         callback();
       } catch (e) { errback(e); }
     });
@@ -160,8 +161,9 @@ export class ControlClient {
     });
     this.recvTransport.on("connect", async ({ dtlsParameters }: any, callback: () => void, errback: (err: any) => void) => {
       try {
-        console.log("recv transport connected");
+        console.log("recv transport - starting dtls handshake");
         await this.request({ type: "connectTransport", transportId: info.id, dtlsParameters });
+        console.log("recv transport - connected");
         callback();
       } catch (e) { errback(e); }
     });

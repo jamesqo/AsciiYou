@@ -27,6 +27,7 @@ class ControlMessageHandler:
     """
     Responsible for:
     (1) two-way communication between client and worker process (via WebSocket)
+    (2) interacting with SFU server (sandboxed to backend) in response to WS messages
     (2) event-based communication between this and other workers (via Redis pubsub)
     """
 
@@ -126,7 +127,8 @@ class ControlMessageHandler:
                 await self.huddle.broadcast_message({
                     "op": "new_producer",
                     "huddle_id": self.hid,
-                    "producer_id": self.pid,
+                    # NOTE: the producer ID is NOT the same thing as the participant ID
+                    "producer_id": data["id"],
                 })
             case MsgConsume(transport_id=tid, producer_id=pid, rtp_capabilities=caps):
                 data = await self._sfu_consume(tid, pid, caps)

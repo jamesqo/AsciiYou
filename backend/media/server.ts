@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import util from 'node:util';
 import http from 'node:http';
 import { types, createWorker } from 'mediasoup';
 
@@ -39,6 +40,20 @@ app.use((req: Request, res: Response, next) => {
     return originalSend(body);
   };
 
+  const pretty = (val: unknown): string => {
+    try {
+      if (typeof val === 'string') {
+        // try JSON pretty
+        try { return JSON.stringify(JSON.parse(val), null, 2); } catch {}
+        return val;
+      }
+      // util.inspect expands nested objects/arrays instead of [Object]
+      return util.inspect(val, { depth: null, colors: false, maxArrayLength: null });
+    } catch {
+      return String(val);
+    }
+  };
+
   res.on('finish', () => {
     const durMs = Number(process.hrtime.bigint() - start) / 1e6;
     const method = req.method;
@@ -49,10 +64,10 @@ app.use((req: Request, res: Response, next) => {
     // Log bodies if present (and reasonably sized)
     const reqBody = req.body;
     if (reqBody && (typeof reqBody !== 'object' || Object.keys(reqBody).length > 0)) {
-      try { console.log('[media]   req body:', reqBody); } catch {}
+      try { console.log('[media]   req body:\n' + pretty(reqBody)); } catch {}
     }
     if (typeof responseBody !== 'undefined') {
-      try { console.log('[media]   res body:', responseBody); } catch {}
+      try { console.log('[media]   res body:\n' + pretty(responseBody)); } catch {}
     }
   });
 

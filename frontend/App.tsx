@@ -4,25 +4,21 @@ import {
     attachDebugShortcuts,
     debugCanvas,
     debugRenderState,
-    debugShaderResources,
     debugTextures,
     fullDebug,
     screenshotCanvas,
     snapshotCanvas,
     testCanvasDrawing,
-    debugWebGPUBuffers,
     validateWebGPUPipeline
 } from '@/util/debugHelpers'
 import type { DebugTools } from '@/types'
-import { StoreProvider, useStores } from '@/stores/StoreContext'
+import { useStores } from '@/stores/StoreContext'
 import { UIControls } from '@/components/UIControls'
-import { SDPClient } from './service/SDPClient'
+import { ASCIIFeed } from '@/components/ASCIIFeed'
 
 export default function App() {
     const { uiStore, huddleStore, streamingStore } = useStores()
-    const canvasRef = useRef<HTMLCanvasElement | null>(null)
     const videoRef = useRef<HTMLVideoElement | null>(null)
-    const rendererRef = useRef<ASCIIRenderer | null>(null)
     const [joinOpen, setJoinOpen] = useState(false)
     const [joinCode, setJoinCode] = useState("")
 
@@ -32,18 +28,11 @@ export default function App() {
         let cancelled = false;
         (async () => {
             const video = videoRef.current!
-            const canvas = canvasRef.current!
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
                 video.srcObject = stream
                 await video.play()
                 if (cancelled) return
-
-                const renderer = await ASCIIRenderer.initialize(canvas, video)
-                window.renderer = renderer
-                rendererRef.current = renderer
-                uiStore.setRenderer(renderer)
-                await renderer.run()
             } catch (e) {
                 console.error('❌ init error', e)
             }
@@ -113,9 +102,16 @@ export default function App() {
             </div>
 
             <video id="cam" ref={videoRef} autoPlay muted playsInline />
-            <div className="canvas-container">
-                <canvas id="gfx" ref={canvasRef} width={1280} height={720} />
-            </div>
+            
+            <ASCIIFeed
+                videoRef={videoRef}
+                width={1280}
+                height={720}
+                onReady={(renderer: ASCIIRenderer) => {
+                    uiStore.setRenderer(renderer)
+                }}
+                onError={(e: unknown) => console.error('❌ ASCIIFeed init error', e)}
+            />
 
             <div className="status">Running | Press 'H' for help</div>
 

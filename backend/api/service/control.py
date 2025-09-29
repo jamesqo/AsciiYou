@@ -127,6 +127,7 @@ class ControlMessageHandler:
                 await self.huddle.broadcast_message({
                     "op": "new_producer",
                     "huddle_id": self.hid,
+                    "participant_id": self.pid,
                     # NOTE: the producer ID is NOT the same thing as the participant ID
                     "producer_id": data["id"],
                 })
@@ -150,10 +151,13 @@ class ControlMessageHandler:
         op = payload["op"]
         match op:
             case "new_producer":
+                assert self.hid == payload["huddle_id"]
+                participant_id = payload["participant_id"]
                 producer_id = payload["producer_id"]
-                if producer_id != self.pid:
+                if participant_id != self.pid:
                     await self.ws.send_json(NewProducer(
                         huddle_id=self.hid,
+                        participant_id=participant_id,
                         producer_id=producer_id,
                     ).dump())
             case _:

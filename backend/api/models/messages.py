@@ -106,6 +106,7 @@ class Consumed(CamelCase):
 class NewProducer(CamelCase):
     type: Literal["newProducer"] = "newProducer"
     huddle_id: str
+    participant_id: str
     producer_id: str
 
 

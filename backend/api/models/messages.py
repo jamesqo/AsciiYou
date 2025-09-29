@@ -9,10 +9,9 @@ from models.camel_case import CamelCase
 
 class ControlState(Enum):
     ACCEPTED_WS = 0
-    SENT_HELLO = 1
-    WAITING_FOR_TRANSPORT_REQUEST = 2
-    WAITING_FOR_TRANSPORT_CONNECT = 3
-    CONNECTED_TO_MEDIA_SERVER = 4
+    WAITING_FOR_TRANSPORT_REQUEST = 1
+    WAITING_FOR_TRANSPORT_CONNECT = 2
+    CONNECTED_TO_SFU = 3
 
 # ===== Client -> Server messages =====
 
@@ -75,12 +74,6 @@ ClientMessage = Annotated[
 # ===== Server -> Client messages =====
 
 
-class ServerHello(CamelCase):
-    type: Literal["serverHello"] = "serverHello"
-    huddle_id: str
-    participant_id: str
-
-
 class RouterRtpCapabilities(CamelCase):
     type: Literal["routerRtpCapabilities"] = "routerRtpCapabilities"
     data: dict[str, Any]
@@ -119,7 +112,6 @@ class NewProducer(CamelCase):
 # Discriminated union for server -> client
 ServerMessage = Annotated[
     Union[
-        ServerHello,
         RouterRtpCapabilities,
         TransportCreated,
         Ack,

@@ -23,8 +23,8 @@ export class ControlClient {
   private sendTransport: any | null = null;
   private recvTransport: any | null = null;
 
-  // simple waiter mechanism for responses
-  private waiters: Array<{ match: (m: any) => boolean; resolve: (m: any) => void; reject: (e: any) => void }> = [];
+  // single pending expectation (state-machine style)
+  private pending?: { match: (m: any) => boolean; resolve: (m: any) => void; reject: (e: any) => void; timer?: any };
 
   constructor(opts: ControlClientOpts = {}) {
     this.opts = {
@@ -52,9 +52,21 @@ export class ControlClient {
           resolve();
         };
 
-        ws.onmessage = (ev) => this.handleIncoming(ev);
-        ws.onerror = (ev) => this.opts.onError?.(ev);
+        ws.onmessage = async (ev) => await this.handleIncoming(ev);
+        ws.onerror = (ev) => {
+          // reject any in-flight expectation
+          if (this.pending) {
+            const p = this.pending; this.pending = undefined;
+            try { p.reject(new Error("ws error")); } catch {}
+          }
+          this.opts.onError?.(ev);
+        };
         ws.onclose = (ev) => {
+          // reject any in-flight expectation
+          if (this.pending) {
+            const p = this.pending; this.pending = undefined;
+            try { p.reject(new Error(`ws closed: ${ev.code}`)); } catch {}
+          }
           this.opts.onClose?.(ev);
           this.ws = undefined;
         };
@@ -156,15 +168,38 @@ export class ControlClient {
   }
 
   // WS plumbing
-  private handleIncoming(ev: MessageEvent) {
+  private async handleIncoming(ev: MessageEvent) {
     try {
       const msg = JSON.parse(ev.data as string);
       console.log("Received WS message", msg);
-      // resolve waiter if any matches
-      const i = this.waiters.findIndex((w) => w.match(msg));
-      if (i >= 0) {
-        const [w] = this.waiters.splice(i, 1);
-        w.resolve(msg);
+      const resolveIfPending = (m: any) => {
+        if (this.pending && this.pending.match(m)) {
+          const p = this.pending; this.pending = undefined;
+          if (p.timer) clearTimeout(p.timer);
+          p.resolve(m);
+          return true;
+        }
+        return false;
+      };
+
+      switch (msg?.type) {
+        // handshake messages -- these are explicitly awaited
+        case "routerRtpCapabilities":
+        case "transportCreated":
+        case "ack":
+        case "produced":
+        case "consumed":
+          if (!resolveIfPending(msg)) {
+            throw new Error(`${msg.type} not awaited`);
+          }
+          return;
+        // event messages -- these are sent spontaneously by the server, not explicitly awaited
+        case "newProducer": {
+          await this.consumeProducer(msg.producerId);
+          return;
+        }
+        default:
+          throw new Error(`unknown message type: ${msg.type}`);
       }
     } catch (e) {
       this.opts.onError?.(e);
@@ -175,8 +210,10 @@ export class ControlClient {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       throw new Error("control WS not open");
     }
+    if (this.pending) {
+      throw new Error("a request is already in flight");
+    }
     const p = new Promise<any>((resolve, reject) => {
-      // match different server response types
       const match = (m: any) => {
         if (payload.type === "createTransport") return m?.type === "transportCreated";
         if (payload.type === "connectTransport") return m?.type === "ack" && (m.transportId || m.transport_id) === payload.transportId;
@@ -184,7 +221,14 @@ export class ControlClient {
         if (payload.type === "consume") return m?.type === "consumed";
         return false;
       };
-      this.waiters.push({ match, resolve, reject });
+      // set pending expectation with timeout
+      const timer = setTimeout(() => {
+        if (this.pending) {
+          const cur = this.pending; this.pending = undefined;
+          try { cur.reject(new Error("request timeout")); } catch {}
+        }
+      }, 15000);
+      this.pending = { match, resolve, reject, timer };
     });
     console.log("Sending WS message", payload);
     this.ws.send(JSON.stringify(payload));
@@ -192,8 +236,17 @@ export class ControlClient {
   }
 
   private waitFor(pred: (m: any) => boolean): Promise<any> {
+    if (this.pending) {
+      return Promise.reject(new Error("a request is already in flight"));
+    }
     return new Promise((resolve, reject) => {
-      this.waiters.push({ match: pred, resolve, reject });
+      const timer = setTimeout(() => {
+        if (this.pending) {
+          const cur = this.pending; this.pending = undefined;
+          try { cur.reject(new Error("waitFor timeout")); } catch {}
+        }
+      }, 15000);
+      this.pending = { match: pred, resolve, reject, timer };
     });
   }
 }

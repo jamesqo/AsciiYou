@@ -8,7 +8,6 @@ from settings import settings
 from models.messages import (
     ClientMessage,
     ControlState,
-    ServerHello,
     RouterRtpCapabilities,
     TransportCreated,
     Ack,
@@ -51,11 +50,6 @@ class ControlMessageHandler:
         await self.http.__aexit__(exc_type, exc, tb)
 
     async def begin_handshake(self) -> None:
-        # Send initial hello
-        await self.ws.send_json(
-            ServerHello(huddle_id=self.hid, participant_id=self.pid).model_dump())
-        self.state = ControlState.SENT_HELLO
-        
         # Ensure huddle on media server and forward router RTP caps
         caps = await self._sfu_ensure_huddle()
         await self.ws.send_json(RouterRtpCapabilities(data=caps).model_dump())
@@ -123,7 +117,7 @@ class ControlMessageHandler:
                     return
                 await self._sfu_connect_transport(tid, dtls)
                 await self.ws.send_json(Ack(op="connectTransport", transport_id=tid).model_dump())
-                self.state = ControlState.CONNECTED_TO_MEDIA_SERVER
+                self.state = ControlState.CONNECTED_TO_SFU
             case MsgProduce(transport_id=tid, kind=kind, rtp_parameters=rtp):
                 data = await self._sfu_produce(tid, kind, rtp)
                 await self.ws.send_json(Produced(data=data).model_dump())

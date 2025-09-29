@@ -63,27 +63,27 @@ class ControlMessageHandler:
     async def _sfu_create_transport(self, direction: str | None) -> dict:
         r = await self.http.post(
             f"{settings.media_server_url}/huddles/{self.hid}/transports",
-            json={"peerId": self.pid, "direction": direction},
+            json={"participantId": self.pid, "direction": direction},
         )
         return r.json()
 
     async def _sfu_connect_transport(self, transport_id: str, dtls: dict) -> None:
         await self.http.post(
             f"{settings.media_server_url}/transports/{transport_id}/connect",
-            json={"hid": self.hid, "peerId": self.pid, "dtlsParameters": dtls},
+            json={"hid": self.hid, "participantId": self.pid, "dtlsParameters": dtls},
         )
 
     async def _sfu_produce(self, transport_id: str, kind: str, rtp_parameters: dict) -> dict:
         r = await self.http.post(
             f"{settings.media_server_url}/huddles/{self.hid}/produce",
-            json={"peerId": self.pid, "transportId": transport_id, "kind": kind, "rtpParameters": rtp_parameters},
+            json={"participantId": self.pid, "transportId": transport_id, "kind": kind, "rtpParameters": rtp_parameters},
         )
         return r.json()
 
     async def _sfu_consume(self, transport_id: str, producer_id: str, rtp_caps: dict) -> dict:
         r = await self.http.post(
             f"{settings.media_server_url}/huddles/{self.hid}/consume",
-            json={"peerId": self.pid, "transportId": transport_id, "producerId": producer_id, "rtpCapabilities": rtp_caps},
+            json={"participantId": self.pid, "transportId": transport_id, "producerId": producer_id, "rtpCapabilities": rtp_caps},
         )
         return r.json()
 

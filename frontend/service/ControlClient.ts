@@ -110,8 +110,8 @@ export class ControlClient {
   // Public: consume by producerId -> returns MediaStream
   async consumeProducer(producerId: string): Promise<{ stream: MediaStream; consumerId: string; kind: string }> {
     await this.ensureRecvTransport();
-    const rtpcaps = this.device!.rtpCapabilities;
-    const data = await this.request({ type: "consume", transportId: this.recvTransport!.id, producerId, rtpCapabilities: rtpcaps });
+    const rtpCaps = this.device!.rtpCapabilities;
+    const data = await this.request({ type: "consume", transportId: this.recvTransport!.id, producerId, rtpCapabilities: rtpCaps });
     const { id, kind, rtpParameters } = data.data;
     const consumer = await this.recvTransport!.consume({ id, producerId, kind, rtpParameters });
     const stream = new MediaStream([consumer.track]);
@@ -182,7 +182,7 @@ export class ControlClient {
         return false;
       };
 
-      switch (msg?.type) {
+      switch (msg.type) {
         // handshake messages -- these are explicitly awaited
         case "routerRtpCapabilities":
         case "transportCreated":

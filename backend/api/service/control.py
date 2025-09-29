@@ -52,7 +52,7 @@ class ControlMessageHandler:
     async def begin_handshake(self) -> None:
         # Ensure huddle on media server and forward router RTP caps
         caps = await self._sfu_ensure_huddle()
-        await self.ws.send_json(RouterRtpCapabilities(data=caps).model_dump())
+        await self.ws.send_json(RouterRtpCapabilities(data=caps).dump())
         self.state = ControlState.WAITING_FOR_TRANSPORT_REQUEST
 
     # --- SFU HTTP helpers ---
@@ -110,17 +110,17 @@ class ControlMessageHandler:
         match msg:
             case CreateTransport(direction=direction):
                 data = await self._sfu_create_transport(direction)
-                await self.ws.send_json(TransportCreated(data=data).model_dump())
+                await self.ws.send_json(TransportCreated(data=data).dump())
                 self.state = ControlState.WAITING_FOR_TRANSPORT_CONNECT
             case ConnectTransport(transport_id=tid, dtls_parameters=dtls):
                 if not tid or not dtls:
                     return
                 await self._sfu_connect_transport(tid, dtls)
-                await self.ws.send_json(Ack(op="connectTransport", transport_id=tid).model_dump())
+                await self.ws.send_json(Ack(op="connectTransport", transport_id=tid).dump())
                 self.state = ControlState.CONNECTED_TO_SFU
             case MsgProduce(transport_id=tid, kind=kind, rtp_parameters=rtp):
                 data = await self._sfu_produce(tid, kind, rtp)
-                await self.ws.send_json(Produced(data=data).model_dump())
+                await self.ws.send_json(Produced(data=data).dump())
 
                 # Broadcast new producer notification to other ControlMessageHandlers
                 await self.huddle.broadcast_message({
@@ -130,13 +130,13 @@ class ControlMessageHandler:
                 })
             case MsgConsume(transport_id=tid, producer_id=pid, rtp_capabilities=caps):
                 data = await self._sfu_consume(tid, pid, caps)
-                await self.ws.send_json(Consumed(data=data).model_dump())
+                await self.ws.send_json(Consumed(data=data).dump())
             case ProducerOp(op=op, producer_id=pid):
                 await self._sfu_producer_op(op, pid)
-                await self.ws.send_json(Ack(op="producerOp", producer_id=pid).model_dump())
+                await self.ws.send_json(Ack(op="producerOp", producer_id=pid).dump())
             case ConsumerOp(op=op, consumer_id=cid):
                 await self._sfu_consumer_op(op, cid)
-                await self.ws.send_json(Ack(op="consumerOp", consumer_id=cid).model_dump())
+                await self.ws.send_json(Ack(op="consumerOp", consumer_id=cid).dump())
             case Close():
                 raise IOError("WebSocket close requested by client")
     
@@ -153,6 +153,6 @@ class ControlMessageHandler:
                     await self.ws.send_json(NewProducer(
                         huddle_id=self.hid,
                         producer_id=producer_id,
-                    ).model_dump())
+                    ).dump())
             case _:
                 raise ValueError(f"unrecognized redis event: {op}")

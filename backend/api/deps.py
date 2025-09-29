@@ -1,20 +1,17 @@
 from __future__ import annotations
+from fastapi import FastAPI, Request, WebSocket, Depends
+from redis.asyncio.client import Redis
 
-from redis.asyncio import from_url
+from service.huddle_verse import HuddleVerse
+from persistence.huddle_repository import HuddleRepository
+from persistence.participant_repository import ParticipantRepository
 
-from settings import settings
-from persistence.huddle_repository import RedisHuddleRepository, HuddleRepository
-from persistence.participant_repository import RedisParticipantRepository, ParticipantRepository
+def get_huddle_repo(req: Request) -> HuddleRepository:
+    return req.app.state.huddle_repo
 
+def get_participant_repo(req: Request) -> ParticipantRepository:
+    return req.app.state.participant_repo
 
-_redis = from_url(settings.redis_url, decode_responses=False)
-_huddle_repo: HuddleRepository = RedisHuddleRepository(_redis)
-_participant_repo: ParticipantRepository = RedisParticipantRepository(_redis)
-
-
-def get_huddle_repo() -> HuddleRepository:
-    return _huddle_repo
-
-def get_participant_repo() -> ParticipantRepository:
-    return _participant_repo
+def get_huddle_verse_ws(ws: WebSocket) -> HuddleVerse:
+    return ws.app.state.huddle_verse
 

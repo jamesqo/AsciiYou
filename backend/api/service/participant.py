@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from typing import Optional
 from fastapi import WebSocket
-from service.huddle import Huddle
-
 
 class Participant:
     """Local representation of participant for a given huddle session. Mirrors Redis (ground-truth).
@@ -14,7 +12,7 @@ class Participant:
 
     def __init__(self,
                  participant_id: str,
-                 huddle: Huddle,
+                 huddle: "Huddle",
                  websocket: Optional[WebSocket] = None) -> None:
         self.id = participant_id
         self.huddle = huddle

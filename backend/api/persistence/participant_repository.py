@@ -6,17 +6,18 @@ import json
 
 from redis.asyncio import Redis
 
-from models.participant import Participant
+from persistence.pubsub import PubSubMixin
+from models.participant_info import ParticipantInfo
 
 
 class ParticipantRepository(ABC):
     @abstractmethod
-    async def add(self, huddle_id: str, participant: Participant) -> None:
+    async def add(self, huddle_id: str, participant: ParticipantInfo) -> None:
         """Create a new Participant and add them to the Huddle's participant list."""
         ...
 
     @abstractmethod
-    async def get(self, participant_id: str) -> Optional[Participant]:
+    async def get(self, participant_id: str) -> Optional[ParticipantInfo]:
         """Gets a Participant from their ID."""
         ...
 
@@ -32,12 +33,12 @@ class ParticipantRepository(ABC):
 
     # TODO: consider making the events strongly-typed
     @abstractmethod
-    async def member_events(self, huddle_id: str) -> AsyncIterator[dict[str, str]]:
+    def member_events(self, huddle_id: str) -> AsyncIterator[dict[str, str]]:
         """Yields membership updates (op: add/remove, participant_id)."""
         ...
 
 
-class RedisParticipantRepository(ParticipantRepository):
+class RedisParticipantRepository(ParticipantRepository, PubSubMixin):
     def __init__(self, redis: Redis):
         self._redis = redis
 
@@ -52,9 +53,9 @@ class RedisParticipantRepository(ParticipantRepository):
         return f"huddles:{huddle_id}"
 
     def _channel(self, huddle_id: str) -> str:
-        return f"huddle:{huddle_id}:members:events"
+        return f"events:huddle:{huddle_id}:members"
 
-    async def add(self, huddle_id: str, participant: Participant) -> None:
+    async def add(self, huddle_id: str, participant: ParticipantInfo) -> None:
         # Align participant TTL to the huddle's TTL
         # NOTE: may need to revisit this approach in the future
         # if we decide to support extending Huddle TTLs
@@ -85,25 +86,25 @@ class RedisParticipantRepository(ParticipantRepository):
 
         # publish membership update
         await self._redis.publish(self._channel(huddle_id), json.dumps({
-            "op": "add",
+            "op": "add_participant",
             "huddle_id": huddle_id,
             "participant_id": participant.id,
         }))
 
-    async def get(self, participant_id: str) -> Optional[Participant]:
+    async def get(self, participant_id: str) -> Optional[ParticipantInfo]:
         data = await self._redis.hgetall(self._p_key(participant_id))
         if not data:
             return None
         # redis returns bytes; decode to str if needed
         decoded = { (k.decode() if isinstance(k, (bytes, bytearray)) else k): (v.decode() if isinstance(v, (bytes, bytearray)) else v) for k, v in data.items() }
-        return Participant.model_validate(decoded)
+        return ParticipantInfo.model_validate(decoded)
 
     async def delete(self, huddle_id: str, participant_id: str) -> None:
         await self._redis.delete(self._p_key(participant_id))
         await self._redis.srem(self._set_key(huddle_id), participant_id)
         # publish membership update
         await self._redis.publish(self._channel(huddle_id), json.dumps({
-            "op": "remove",
+            "op": "remove_participant",
             "huddle_id": huddle_id,
             "participant_id": participant_id,
         }))
@@ -112,26 +113,5 @@ class RedisParticipantRepository(ParticipantRepository):
         members = await self._redis.smembers(self._set_key(huddle_id))
         return [m.decode() if isinstance(m, (bytes, bytearray)) else str(m) for m in members]
 
-    async def member_events(self, huddle_id: str) -> AsyncIterator[dict[str, str]]:
-        channel = self._channel(huddle_id)
-        pubsub = self._redis.pubsub()
-        await pubsub.subscribe(channel)
-        try:
-            async for message in pubsub.listen():
-                if not message or message.get("type") != "message":
-                    continue
-                data = message.get("data")
-                if isinstance(data, (bytes, bytearray)):
-                    data = data.decode()
-                evt = json.loads(data)
-                op = evt.get("op")
-                pid = evt.get("participant_id")
-                if op in ("add", "remove") and pid:
-                    yield {"op": op, "participant_id": pid}
-        finally:
-            try:
-                await pubsub.unsubscribe(channel)
-            finally:
-                await pubsub.close()
-
-
+    def member_events(self, huddle_id: str) -> AsyncIterator[dict[str, str]]:
+        return self._subscribe(self._channel(huddle_id))

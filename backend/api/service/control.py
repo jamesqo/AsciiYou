@@ -1,7 +1,9 @@
 
 
+import asyncio
 from fastapi import WebSocket
 import httpx
+from service.huddle import Huddle
 from settings import settings
 from models.messages import (
     ClientMessage,
@@ -19,15 +21,27 @@ from models.messages import (
     ProducerOp,
     ConsumerOp,
     Close,
+    NewProducer,
 )
 
 class ControlMessageHandler:
-    def __init__(self, ws: WebSocket, hid: str, pid: str):
+    """
+    Responsible for:
+    (1) two-way communication between client and worker process (via WebSocket)
+    (2) event-based communication between this and other workers (via Redis pubsub)
+    """
+
+    def __init__(self, ws: WebSocket, huddle: Huddle, pid: str):
         self.ws = ws
-        self.hid = hid
+        self.huddle = huddle
+        self.hid = huddle.id
         self.pid = pid
+        # TODO: use DI for this?
         self.http = httpx.AsyncClient()
         self.state = ControlState.ACCEPTED_WS
+
+        # pick up on events from other worker processes
+        asyncio.create_task(self.redis_event_loop())
 
     async def __aenter__(self):
         await self.http.__aenter__()
@@ -98,7 +112,7 @@ class ControlMessageHandler:
             await self.http.delete(base)
 
     # --- Message dispatcher ---
-    async def handle_message(self, msg: ClientMessage) -> None:
+    async def handle_incoming_message(self, msg: ClientMessage) -> None:
         match msg:
             case CreateTransport(direction=direction):
                 data = await self._sfu_create_transport(direction)
@@ -113,6 +127,13 @@ class ControlMessageHandler:
             case MsgProduce(transport_id=tid, kind=kind, rtp_parameters=rtp):
                 data = await self._sfu_produce(tid, kind, rtp)
                 await self.ws.send_json(Produced(data=data).model_dump())
+
+                # Broadcast new producer notification to other ControlMessageHandlers
+                await self.huddle.broadcast_message({
+                    "op": "new_producer",
+                    "huddle_id": self.hid,
+                    "producer_id": self.pid,
+                })
             case MsgConsume(transport_id=tid, producer_id=pid, rtp_capabilities=caps):
                 data = await self._sfu_consume(tid, pid, caps)
                 await self.ws.send_json(Consumed(data=data).model_dump())
@@ -124,3 +145,20 @@ class ControlMessageHandler:
                 await self.ws.send_json(Ack(op="consumerOp", consumer_id=cid).model_dump())
             case Close():
                 raise IOError("WebSocket close requested by client")
+    
+    async def redis_event_loop(self):
+        async for evt in self.huddle.events():
+            await self.handle_redis_event(evt)
+    
+    async def handle_redis_event(self, payload: dict):
+        op = payload["op"]
+        match op:
+            case "new_producer":
+                producer_id = payload["producer_id"]
+                if producer_id != self.pid:
+                    await self.ws.send_json(NewProducer(
+                        huddle_id=self.hid,
+                        producer_id=producer_id,
+                    ).model_dump())
+            case _:
+                raise ValueError(f"unrecognized redis event: {op}")

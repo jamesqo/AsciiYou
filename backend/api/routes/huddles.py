@@ -6,8 +6,8 @@ from datetime import datetime, timezone
 from settings import settings
 from deps import get_huddle_repo, get_participant_repo
 from persistence.huddle_repository import HuddleRepository
-from models.huddle import Huddle
-from models.participant import Participant
+from models.huddle_info import HuddleInfo
+from models.participant_info import ParticipantInfo
 from persistence.participant_repository import ParticipantRepository
 from models.rest import JoinOk
 
@@ -31,8 +31,8 @@ async def create_huddle(
     participant_id = new_id("p")
     exp = time.time() + settings.huddle_ttl_seconds
 
-    participant = Participant(id=participant_id, role="host")
-    huddle = Huddle(
+    participant = ParticipantInfo(id=participant_id, role="host")
+    huddle = HuddleInfo(
         id=huddle_id,
         created_at=datetime.now(timezone.utc),
         expires_at=datetime.fromtimestamp(exp, tz=timezone.utc),
@@ -72,7 +72,7 @@ async def join_huddle(
         raise HTTPException(status_code=404, detail="Huddle not found or expired")
 
     participant_id = new_id("p")
-    participant = Participant(id=participant_id, role="guest")
+    participant = ParticipantInfo(id=participant_id, role="guest")
 
     try:
         await participant_repo.add(huddle_id, participant)

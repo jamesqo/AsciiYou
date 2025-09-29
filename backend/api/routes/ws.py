@@ -1,5 +1,6 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 import jwt
+from service.participant import Participant
 from models.messages import ClientMessage
 from service.control import ControlMessageHandler
 from service.huddle_verse import HuddleVerse
@@ -29,17 +30,23 @@ async def control_ws(
     # Validate huddle exists
     huddle = huddle_verse.get(huddle_id)
     if not huddle:
+        print("Huddle not found")
+        await websocket.close(code=1008)
+        return
+    # Validate participant exists
+    participant = huddle.get_participant(participant_id)
+    if not participant:
+        print("Participant not found")
         await websocket.close(code=1008)
         return
 
     await websocket.accept()
+    participant.set_websocket(websocket)
     print(f"Accepted control websocket: hid={huddle_id} pid={participant_id}")
 
     try:
         handler = ControlMessageHandler(
-            ws=websocket,
-            huddle=huddle,
-            pid=participant_id
+            participant=participant
         )
         async with handler:
             await handler.begin_handshake()

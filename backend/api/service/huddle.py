@@ -12,7 +12,7 @@ from service.participant import Participant
 
 
 class Huddle:
-    """Local representation of huddle session. Mirrors Redis (ground-truth).
+    """Local representation of huddle session. Participant list mirrors Redis (ground-truth).
 
     - Maintains in-memory map of Participant objects
     - Keeps membership in sync with Redis via pubsub
@@ -88,6 +88,9 @@ class Huddle:
             self._participants[participant_id].disconnect()
         )
         del self._participants[participant_id]
+    
+    def get_participant(self, participant_id: str) -> Optional[Participant]:
+        return self._participants.get(participant_id)
 
     # ---- eventing ----
     async def broadcast_message(self, payload: dict) -> None:

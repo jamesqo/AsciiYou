@@ -3,11 +3,13 @@
 import asyncio
 from fastapi import WebSocket
 import httpx
+from service.participant import Participant
 from service.huddle import Huddle
 from settings import settings
 from models.messages import (
     ClientMessage,
     ControlState,
+    RelayProducers,
     RouterRtpCapabilities,
     TransportCreated,
     Ack,
@@ -31,11 +33,11 @@ class ControlMessageHandler:
     (2) event-based communication between this and other workers (via Redis pubsub)
     """
 
-    def __init__(self, ws: WebSocket, huddle: Huddle, pid: str):
-        self.ws = ws
-        self.huddle = huddle
-        self.hid = huddle.id
-        self.pid = pid
+    def __init__(self, participant: Participant):
+        self.huddle = participant.huddle
+        self.part = participant
+        self.hid = self.huddle.id
+        self.pid = participant.id
         # TODO: use DI for this?
         self.http = httpx.AsyncClient()
         self.state = ControlState.ACCEPTED_WS
@@ -53,7 +55,7 @@ class ControlMessageHandler:
     async def begin_handshake(self) -> None:
         # Ensure huddle on media server and forward router RTP caps
         caps = await self._sfu_ensure_huddle()
-        await self.ws.send_json(RouterRtpCapabilities(data=caps).dump())
+        await self.part.send_message(RouterRtpCapabilities(data=caps))
         self.state = ControlState.WAITING_FOR_TRANSPORT_REQUEST
 
     # --- SFU HTTP helpers ---
@@ -106,22 +108,37 @@ class ControlMessageHandler:
         elif op == "close":
             await self.http.delete(base)
 
+    async def _sfu_get_state(self) -> dict:
+        r = await self.http.get(f"{settings.media_server_url}/huddles/{self.hid}/state")
+        return r.json()
+
+    async def send_existing_producers(self) -> None:
+        state = await self._sfu_get_state()
+        for p in state["participants"]:
+            owner = p["id"]
+            for prod_id in p["producers"]:
+                await self.part.send_message(NewProducer(
+                    huddle_id=self.hid,
+                    participant_id=owner,
+                    producer_id=prod_id,
+                ))
+
     # --- Message dispatcher ---
     async def handle_incoming_message(self, msg: ClientMessage) -> None:
         match msg:
             case CreateTransport(direction=direction):
                 data = await self._sfu_create_transport(direction)
-                await self.ws.send_json(TransportCreated(data=data).dump())
+                await self.part.send_message(TransportCreated(data=data))
                 self.state = ControlState.WAITING_FOR_TRANSPORT_CONNECT
             case ConnectTransport(transport_id=tid, dtls_parameters=dtls):
                 if not tid or not dtls:
                     return
                 await self._sfu_connect_transport(tid, dtls)
-                await self.ws.send_json(Ack(op="connectTransport", transport_id=tid).dump())
+                await self.part.send_message(Ack(op="connectTransport", transport_id=tid))
                 self.state = ControlState.CONNECTED_TO_SFU
             case MsgProduce(transport_id=tid, kind=kind, rtp_parameters=rtp):
                 data = await self._sfu_produce(tid, kind, rtp)
-                await self.ws.send_json(Produced(data=data).dump())
+                await self.part.send_message(Produced(data=data))
 
                 # Broadcast new producer notification to other ControlMessageHandlers
                 await self.huddle.broadcast_message({
@@ -131,15 +148,24 @@ class ControlMessageHandler:
                     # NOTE: the producer ID is NOT the same thing as the participant ID
                     "producer_id": data["id"],
                 })
+            case RelayProducers():
+                # Enable broadcasting of newProducer messages
+                # This is local and ephemeral state -- no need to store it in Redis
+                self.part.relay_producers = True
+                # Send an ACK -- useful in the case where there are no producers to flush
+                await self.part.send_message(Ack(op="relayProducers"))
+
+                # Send newProducer messages for all existing participants in the room
+                await self.send_existing_producers()
             case MsgConsume(transport_id=tid, producer_id=pid, rtp_capabilities=caps):
                 data = await self._sfu_consume(tid, pid, caps)
-                await self.ws.send_json(Consumed(data=data).dump())
+                await self.part.send_message(Consumed(data=data))
             case ProducerOp(op=op, producer_id=pid):
                 await self._sfu_producer_op(op, pid)
-                await self.ws.send_json(Ack(op="producerOp", producer_id=pid).dump())
+                await self.part.send_message(Ack(op="producerOp", producer_id=pid))
             case ConsumerOp(op=op, consumer_id=cid):
                 await self._sfu_consumer_op(op, cid)
-                await self.ws.send_json(Ack(op="consumerOp", consumer_id=cid).dump())
+                await self.part.send_message(Ack(op="consumerOp", consumer_id=cid))
             case Close():
                 raise IOError("WebSocket close requested by client")
     
@@ -154,11 +180,16 @@ class ControlMessageHandler:
                 assert self.hid == payload["huddle_id"]
                 participant_id = payload["participant_id"]
                 producer_id = payload["producer_id"]
+
+                # Don't broadcast newProducer from ourselves
                 if participant_id != self.pid:
-                    await self.ws.send_json(NewProducer(
+                    # Don't relay new producers until they are explicitly enabled
+                    if not self.part.relay_producers:
+                        return
+                    await self.part.send_message(NewProducer(
                         huddle_id=self.hid,
                         participant_id=participant_id,
                         producer_id=producer_id,
-                    ).dump())
+                    ))
             case _:
                 raise ValueError(f"unrecognized redis event: {op}")

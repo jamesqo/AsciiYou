@@ -47,7 +47,10 @@ class HuddleVerse:
             if op == "add_huddle":
                 # Create local representation if missing
                 if hid not in self._huddles:
-                    self._huddles[hid] = Huddle(hid, self._huddle_repo, self._participant_repo)
+                    h = Huddle(hid, self._huddle_repo, self._participant_repo)
+                    self._huddles[hid] = h
+                    await h.refresh_member_list()
+                    await h.start_tracking()
             elif op == "remove_huddle":
                 h = self._huddles.pop(hid, None)
                 if h:

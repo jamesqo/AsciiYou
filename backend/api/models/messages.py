@@ -33,6 +33,8 @@ class Produce(CamelCase):
     kind: Literal["audio", "video"]
     rtp_parameters: dict[str, Any]
 
+class RelayProducers(CamelCase):
+    type: Literal["relayProducers"]
 
 class Consume(CamelCase):
     type: Literal["consume"]
@@ -62,6 +64,7 @@ ClientMessage = Annotated[
         CreateTransport,
         ConnectTransport,
         Produce,
+        RelayProducers,
         Consume,
         ProducerOp,
         ConsumerOp,

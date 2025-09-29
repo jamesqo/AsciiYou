@@ -37,6 +37,8 @@ export class ControlClient {
     await this.openWs(token)
     await this.loadRemoteCapabilities()
     await this.ensureSendTransport()
+    await this.ensureRecvTransport()
+    await this.streamProducers()
   }
 
   async openWs(token: string) {
@@ -169,6 +171,11 @@ export class ControlClient {
     });
   }
 
+  // signals to the backend that we want to receive newProducer messages
+  private async streamProducers() {
+    await this.request({ type: "relayProducers" });
+  }
+
   // WS plumbing
   private async handleIncoming(ev: MessageEvent) {
     try {
@@ -218,9 +225,10 @@ export class ControlClient {
     const p = new Promise<any>((resolve, reject) => {
       const match = (m: any) => {
         if (payload.type === "createTransport") return m?.type === "transportCreated";
-        if (payload.type === "connectTransport") return m?.type === "ack" && (m.transportId || m.transport_id) === payload.transportId;
+        if (payload.type === "connectTransport") return m?.type === "ack" && m.op === "connectTransport" && m.transportId === payload.transportId;
         if (payload.type === "produce") return m?.type === "produced";
         if (payload.type === "consume") return m?.type === "consumed";
+        if (payload.type === "relayProducers") return m?.type === "ack" && m.op === "relayProducers";
         return false;
       };
       // set pending expectation with timeout

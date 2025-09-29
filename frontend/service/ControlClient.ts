@@ -23,8 +23,22 @@ export class ControlClient {
   private sendTransport: any | null = null;
   private recvTransport: any | null = null;
 
-  // single pending expectation (state-machine style)
+  // single request -> response pending expectation
+  // This means that after we issue a request, we cannot issue another one until we get the desired response form the server.
+  // However, even as we're waiting for the expected response, we can handle other spontaneous events from the server. (eg newProducer)
+  // TODO: might be possible to allow multiple in-flight requests in parallel,
+  // but would need a compelling use case and require more testing for race conditions.
   private pending?: { match: (m: any) => boolean; resolve: (m: any) => void; reject: (e: any) => void; timer?: any };
+
+  // Global async queue tail to serialize requests
+  private tail: Promise<void> = Promise.resolve();
+
+  private enqueue<T>(op: () => Promise<T>): Promise<T> {
+    const run = this.tail.then(op);
+    // keep tail settled regardless of op outcome, so the chain continues strictly in order
+    this.tail = run.then(() => {}, () => {});
+    return run;
+  }
 
   constructor(opts: ControlClientOpts = {}) {
     this.opts = {
@@ -219,10 +233,7 @@ export class ControlClient {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       throw new Error("control WS not open");
     }
-    if (this.pending) {
-      throw new Error("a request is already in flight");
-    }
-    const p = new Promise<any>((resolve, reject) => {
+    return this.enqueue(() => new Promise<any>((resolve, reject) => {
       const match = (m: any) => {
         if (payload.type === "createTransport") return m?.type === "transportCreated";
         if (payload.type === "connectTransport") return m?.type === "ack" && m.op === "connectTransport" && m.transportId === payload.transportId;
@@ -231,7 +242,6 @@ export class ControlClient {
         if (payload.type === "relayProducers") return m?.type === "ack" && m.op === "relayProducers";
         return false;
       };
-      // set pending expectation with timeout
       const timer = setTimeout(() => {
         if (this.pending) {
           const cur = this.pending; this.pending = undefined;
@@ -239,17 +249,13 @@ export class ControlClient {
         }
       }, 15000);
       this.pending = { match, resolve, reject, timer };
-    });
-    console.log("Sending WS message", payload);
-    this.ws.send(JSON.stringify(payload));
-    return p;
+      console.log("Sending WS message", payload);
+      this.ws!.send(JSON.stringify(payload));
+    }));
   }
 
   private waitFor(pred: (m: any) => boolean): Promise<any> {
-    if (this.pending) {
-      return Promise.reject(new Error("a request is already in flight"));
-    }
-    return new Promise((resolve, reject) => {
+    return this.enqueue(() => new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         if (this.pending) {
           const cur = this.pending; this.pending = undefined;
@@ -257,6 +263,6 @@ export class ControlClient {
         }
       }, 15000);
       this.pending = { match: pred, resolve, reject, timer };
-    });
+    }));
   }
 }

@@ -13,7 +13,7 @@ import {
 } from '@/util/debugHelpers'
 import type { DebugTools } from '@/types'
 import { useStores } from '@/stores/StoreContext'
-import { UIControls } from '@/components/UIControls'
+import { FeedControls } from '@/components/FeedControls'
 import { ASCIIFeed } from '@/components/ASCIIFeed'
 
 export default function App() {
@@ -96,13 +96,13 @@ export default function App() {
         <div className="app">
             <div className="header">
                 <div className="title">ASCII Art Webcam</div>
-                <UIControls />
+                <FeedControls />
                 <button onClick={newHuddleClicked}>New huddle</button>
                 <button onClick={joinHuddleClicked}>Join huddle</button>
             </div>
 
             <video id="cam" ref={videoRef} autoPlay muted playsInline />
-            
+
             <ASCIIFeed
                 videoRef={videoRef}
                 width={1280}

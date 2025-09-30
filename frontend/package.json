@@ -4,6 +4,7 @@
   "description": "WebGPU-based ASCII art webcam application",
   "type": "module",
   "scripts": {
+    "compile": "tsc -p tsconfig.json",
     "dev": "vite --port ${PORT:-8000} --strictPort",
     "dev:multi": "concurrently -n ui1,ui2 \"pnpm dev -- --port 5173\" \"pnpm dev -- --port 5174\""
   },

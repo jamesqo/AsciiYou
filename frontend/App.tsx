@@ -14,14 +14,16 @@ import {
 import type { DebugTools } from '@/types'
 import { useStores } from '@/stores/StoreContext'
 import { FeedControls } from '@/components/FeedControls'
-import { ASCIIFeed } from '@/components/ASCIIFeed'
 import { VideoFeed } from '@/components/VideoFeed'
+import { ASCIIFeed } from '@/components/ASCIIFeed'
+import { useCamera } from '@/hooks/useCamera'
 
 export default function App() {
     const { uiStore, huddleStore, streamingStore } = useStores()
     const videoRef = useRef<HTMLVideoElement | null>(null)
     const [joinOpen, setJoinOpen] = useState(false)
     const [joinCode, setJoinCode] = useState("")
+    const { stream } = useCamera({ autoStart: true })
 
     // Dev-only: wire debug tools with lifecycle-friendly shortcuts (no window any casts)
     // Runs once on mount
@@ -84,7 +86,7 @@ export default function App() {
                 <button onClick={joinHuddleClicked}>Join huddle</button>
             </div>
 
-            <VideoFeed id="cam" ref={videoRef} autoStart />
+            <VideoFeed id="cam" ref={videoRef} stream={stream} />
 
             <ASCIIFeed
                 videoRef={videoRef}

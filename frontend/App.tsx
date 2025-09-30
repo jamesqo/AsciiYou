@@ -15,6 +15,7 @@ import type { DebugTools } from '@/types'
 import { useStores } from '@/stores/StoreContext'
 import { FeedControls } from '@/components/FeedControls'
 import { ASCIIFeed } from '@/components/ASCIIFeed'
+import { VideoFeed } from '@/components/VideoFeed'
 
 export default function App() {
     const { uiStore, huddleStore, streamingStore } = useStores()
@@ -22,26 +23,8 @@ export default function App() {
     const [joinOpen, setJoinOpen] = useState(false)
     const [joinCode, setJoinCode] = useState("")
 
-    // runs once on mount
-    // won't re-run because the dependency array is empty
-    useEffect(() => {
-        let cancelled = false;
-        (async () => {
-            const video = videoRef.current!
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
-                video.srcObject = stream
-                await video.play()
-                if (cancelled) return
-            } catch (e) {
-                console.error('❌ init error', e)
-            }
-        })()
-        return () => { cancelled = true }
-    }, [])
-
     // Dev-only: wire debug tools with lifecycle-friendly shortcuts (no window any casts)
-    // also runs once on mount
+    // Runs once on mount
     useEffect(() => {
         if (!import.meta.env.DEV) return
         const tools: DebugTools = {
@@ -101,7 +84,7 @@ export default function App() {
                 <button onClick={joinHuddleClicked}>Join huddle</button>
             </div>
 
-            <video id="cam" ref={videoRef} autoPlay muted playsInline />
+            <VideoFeed id="cam" ref={videoRef} autoStart />
 
             <ASCIIFeed
                 videoRef={videoRef}

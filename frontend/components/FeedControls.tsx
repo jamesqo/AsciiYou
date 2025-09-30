@@ -1,6 +1,7 @@
 import { observer } from 'mobx-react-lite'
 import { useStores } from '@/stores/StoreContext'
 
+// TODO: rename to UserControls?
 export const FeedControls = observer(function FeedControls() {
   const { uiStore: ui } = useStores()
   return (

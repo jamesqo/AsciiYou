@@ -1,8 +1,9 @@
 import React, { useEffect, useRef } from "react";
 import { ASCIIRenderer } from "@/engine/ASCIIRenderer";
+import { mountHiddenVideo } from "@/util/streamUtils";
 
 type Props = {
-    videoRef: React.RefObject<HTMLVideoElement>;
+    stream: MediaStream | null; // provided MediaStream is wrapped into a hidden <video>
     width?: number;
     height?: number;
     className?: string;
@@ -11,7 +12,7 @@ type Props = {
 };
 
 export const ASCIIFeed: React.FC<Props> = ({
-    videoRef,
+    stream,
     width,
     height,
     className = "canvas-container",
@@ -23,23 +24,16 @@ export const ASCIIFeed: React.FC<Props> = ({
 
     useEffect(() => {
         let cancelled = false;
+        let disposer: (() => void) | null = null;
         (async () => {
-            const video = videoRef.current;
+            if (!stream) return;
             const canvas = canvasRef.current;
-            if (!video || !canvas) return;
+            if (!canvas) return;
+
+            const { video, dispose } = await mountHiddenVideo(stream);
+            disposer = dispose;
 
             try {
-                // Ensure the <video> has data ready to render a frame
-                if (video.readyState < 2) {
-                    await new Promise<void>((resolve) => {
-                        const onData = () => {
-                            video.removeEventListener("loadeddata", onData);
-                            resolve();
-                        };
-                        video.addEventListener("loadeddata", onData, { once: true });
-                    });
-                }
-
                 const renderer = await ASCIIRenderer.initialize(canvas, video);
                 // used by debugHelpers.ts
                 window.renderer = renderer;
@@ -50,8 +44,11 @@ export const ASCIIFeed: React.FC<Props> = ({
                 if (!cancelled) onError?.(e);
             }
         })();
-        return () => { cancelled = true };
-    }, [videoRef, onReady, onError]);
+        return () => {
+            cancelled = true;
+            disposer?.();
+        };
+    }, [stream, onReady, onError]);
 
     return (
         <div className={className}>

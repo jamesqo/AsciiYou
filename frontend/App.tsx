@@ -20,7 +20,6 @@ import { useCamera } from '@/hooks/useCamera'
 
 export default function App() {
     const { uiStore, huddleStore, streamingStore } = useStores()
-    const videoRef = useRef<HTMLVideoElement | null>(null)
     const [joinOpen, setJoinOpen] = useState(false)
     const [joinCode, setJoinCode] = useState("")
     const { stream } = useCamera({ autoStart: true })
@@ -45,29 +44,31 @@ export default function App() {
     }, [])
 
     const newHuddleClicked = async () => {
+        if (!stream) return;
+
         const joinOk = await huddleStore.startNew();
         console.log('joined huddle', joinOk);
 
         // Wire user video feed into the RTCPeerConnection
-        const videoStream = videoRef.current!.srcObject as MediaStream
-        // Initialize RTCPeerConnection and start SDP negotiation with server
+        // Initialize RTCPeerConnection and start handshake with server
         await streamingStore.startStreaming({
-            videoStream,
+            videoStream: stream,
             token: joinOk.streamingToken
         })
     }
 
     const handleJoinCodeSubmit = async (joinCode: string) => {
+        if (!stream) return;
+        
         // NOTE: for now the join code is just the huddle ID,
         // but this may change in the future
         const joinOk = await huddleStore.join(joinCode);
         console.log('joined huddle', joinOk);
 
         // Wire user video feed into the RTCPeerConnection
-        const videoStream = videoRef.current!.srcObject as MediaStream
-        // Initialize RTCPeerConnection and start SDP negotiation with server
+        // Initialize RTCPeerConnection and start handshake with server
         await streamingStore.startStreaming({
-            videoStream,
+            videoStream: stream,
             token: joinOk.streamingToken
         })
     }
@@ -86,10 +87,10 @@ export default function App() {
                 <button onClick={joinHuddleClicked}>Join huddle</button>
             </div>
 
-            <VideoFeed id="cam" ref={videoRef} stream={stream} />
+            <VideoFeed id="cam" stream={stream} />
 
             <ASCIIFeed
-                videoRef={videoRef}
+                stream={stream}
                 width={1280}
                 height={720}
                 onReady={(renderer: ASCIIRenderer) => {

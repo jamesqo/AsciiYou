@@ -43,6 +43,8 @@ export default function App() {
         return () => detach()
     }, [])
 
+    // TODO: use useCallback for each of these handlers?
+
     const newHuddleClicked = async () => {
         if (!stream) return;
 

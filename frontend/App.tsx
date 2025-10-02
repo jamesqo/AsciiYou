@@ -17,6 +17,7 @@ import { FeedControls } from '@/components/FeedControls'
 import { VideoFeed } from '@/components/VideoFeed'
 import { ASCIIFeed } from '@/components/ASCIIFeed'
 import { useCamera } from '@/hooks/useCamera'
+import { MediaGrid } from '@/components/MediaGrid'
 
 export default function App() {
     const { uiStore, huddleStore, streamingStore } = useStores()
@@ -43,6 +44,11 @@ export default function App() {
         return () => detach()
     }, [])
 
+    useEffect(() => {
+        if (!stream) return;
+        streamingStore.setLocalStream(stream)
+    }, [stream])
+
     // TODO: use useCallback for each of these handlers?
 
     const newHuddleClicked = async () => {
@@ -51,10 +57,10 @@ export default function App() {
         const joinOk = await huddleStore.startNew();
         console.log('joined huddle', joinOk);
 
-        // Wire user video feed into the RTCPeerConnection
         // Initialize RTCPeerConnection and start handshake with server
-        await streamingStore.startStreaming({
-            videoStream: stream,
+        // Wire user video feed into the RTCPeerConnection
+        await streamingStore.beginStreamingSession({
+            localStream: stream,
             token: joinOk.streamingToken
         })
     }
@@ -67,10 +73,10 @@ export default function App() {
         const joinOk = await huddleStore.join(joinCode);
         console.log('joined huddle', joinOk);
 
-        // Wire user video feed into the RTCPeerConnection
         // Initialize RTCPeerConnection and start handshake with server
-        await streamingStore.startStreaming({
-            videoStream: stream,
+        // Wire user video feed into the RTCPeerConnection
+        await streamingStore.beginStreamingSession({
+            localStream: stream,
             token: joinOk.streamingToken
         })
     }
@@ -89,7 +95,7 @@ export default function App() {
                 <button onClick={joinHuddleClicked}>Join huddle</button>
             </div>
 
-            <VideoFeed id="cam" stream={stream} />
+            <MediaGrid streams={streamingStore.activeStreams} />
 
             <ASCIIFeed
                 stream={stream}

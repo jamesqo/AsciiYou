@@ -5,6 +5,7 @@ type ControlClientOpts = {
   onOpen?: () => void;
   onClose?: (ev: CloseEvent) => void;
   onError?: (err: unknown) => void;
+  onStreamConsumed?: (stream: MediaStream, participantId: string) => void;
 };
 
 type TransportInfo = {
@@ -52,7 +53,7 @@ export class ControlClient {
     await this.loadRemoteCapabilities()
     await this.ensureSendTransport()
     await this.ensureRecvTransport()
-    await this.streamProducers()
+    await this.startAcceptingProducers()
   }
 
   async openWs(token: string) {
@@ -127,8 +128,8 @@ export class ControlClient {
   async consumeProducer(producerId: string): Promise<{ stream: MediaStream; consumerId: string; kind: string }> {
     await this.ensureRecvTransport();
     const rtpCaps = this.device!.rtpCapabilities;
-    const data = await this.request({ type: "consume", transportId: this.recvTransport!.id, producerId, rtpCapabilities: rtpCaps });
-    const { id, kind, rtpParameters } = data.data;
+    const msg = await this.request({ type: "consume", transportId: this.recvTransport!.id, producerId, rtpCapabilities: rtpCaps });
+    const { id, kind, rtpParameters } = msg.data;
     const consumer = await this.recvTransport!.consume({ id, producerId, kind, rtpParameters });
     const stream = new MediaStream([consumer.track]);
     return { stream, consumerId: consumer.id, kind };
@@ -185,8 +186,8 @@ export class ControlClient {
     });
   }
 
-  // signals to the backend that we want to receive newProducer messages
-  private async streamProducers() {
+  // signals to the backend that we are ready to receive newProducer messages
+  private async startAcceptingProducers() {
     await this.request({ type: "relayProducers" });
   }
 
@@ -218,7 +219,9 @@ export class ControlClient {
           return;
         // event messages -- these are sent spontaneously by the server, not explicitly awaited
         case "newProducer": {
-          await this.consumeProducer(msg.producerId);
+          const { participantId, producerId } = msg;
+          const { stream } = await this.consumeProducer(producerId);
+          this.opts.onStreamConsumed?.(stream, participantId);
           return;
         }
         default:

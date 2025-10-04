@@ -1,6 +1,7 @@
 export function loadStaticContent(path: string) : Promise<Response> {
     const baseUrl = import.meta.env.BASE_URL; // ends with a slash
     const fullPath = `${baseUrl}${path}`;
+    console.log('🔍 Loading static content from', fullPath);
     return fetch(fullPath);
 }
 

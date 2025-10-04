@@ -6,7 +6,8 @@
   "scripts": {
     "compile": "tsc -p tsconfig.json",
     "dev": "vite --port ${PORT:-8000} --strictPort",
-    "dev:multi": "concurrently -n ui1,ui2 \"pnpm dev -- --port 5173\" \"pnpm dev -- --port 5174\""
+    "dev:multi": "concurrently -n ui1,ui2 \"pnpm dev -- --port 5173\" \"pnpm dev -- --port 5174\"",
+    "build": "vite build"
   },
   "dependencies": {
     "mediasoup-client": "^3.16.3",

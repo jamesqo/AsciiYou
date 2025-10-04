@@ -85,8 +85,8 @@ export default function App() {
             <div className="header">
                 <div className="title">ASCII Art Webcam</div>
                 <FeedControls />
-                <button onClick={newHuddleClicked}>New huddle</button>
-                <button onClick={joinHuddleClicked}>Join huddle</button>
+                {/* <button onClick={newHuddleClicked}>New huddle</button>
+                <button onClick={joinHuddleClicked}>Join huddle</button> */}
             </div>
 
             <VideoFeed id="cam" stream={stream} />

@@ -1,5 +1,5 @@
 export function loadStaticContent(path: string) : Promise<Response> {
-    const baseUrl = import.meta.env.VITE_BASE_URL; // ends with a slash
+    const baseUrl = import.meta.env.BASE_URL; // ends with a slash
     const fullPath = `${baseUrl}${path}`;
     return fetch(fullPath);
 }

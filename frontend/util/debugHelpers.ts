@@ -195,7 +195,7 @@ export function testShaderCompilation(): void {
         
         // Test compute shader
         try {
-            const computeWGSL = loadStaticText('/shaders/computeMask.wgsl');
+            const computeWGSL = loadStaticText('shaders/computeMask.wgsl');
             computeWGSL.then(code => {
                 try {
                     const module = device.createShaderModule({ code });
@@ -211,7 +211,7 @@ export function testShaderCompilation(): void {
         
         // Test render shader
         try {
-            const renderWGSL = loadStaticText('/shaders/renderMask.wgsl');
+            const renderWGSL = loadStaticText('shaders/renderMask.wgsl');
             renderWGSL.then(code => {
                 try {
                     const module = device.createShaderModule({ code });

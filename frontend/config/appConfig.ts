@@ -11,7 +11,7 @@ export const appConfig: AppConfig = {
         numRows: Math.ceil(RAMP_DENSE.length / 16),
         ramp: RAMP_DENSE,
         // lives under public/ so Vite serves it as-is
-        path: '/assets/dense_atlas_fira-code-bold_32x46.png'
+        path: 'assets/dense_atlas_fira-code-bold_32x46.png'
     },
     defaultSettings: {
         outW: 150,

@@ -1,6 +1,6 @@
 import { appConfig } from '@/config/appConfig';
 import type { UserSettings } from '@/types';
-import { loadStaticBlob } from '@/util/fileUtils';
+import { loadStaticBlob, loadStaticText } from '@/util/fileUtils';
 
 const { atlasInfo, defaultSettings } = appConfig;
 const RAMP = atlasInfo.ramp;
@@ -134,22 +134,28 @@ export class ASCIIRenderer implements UserSettings {
 
         // Install debug/error handlers early
         renderer.setupErrorHandlers();
+        console.log('🔍 Error handlers installed');
 
         // Configure canvas & video
         renderer.configureCanvas(canvas);
         renderer.video = video;
+        console.log('🔍 Canvas configured');
 
         // Resources
         renderer.atlasTex = await renderer.createAtlasTexture(renderer.atlas);
         renderer.camTex = await renderer.createCamTexture();
         renderer.uniforms = await renderer.createUniforms();
         renderer.indexBuffer = renderer.createIndexBuffer();
+        console.log('🔍 Resources created');
 
         // Pipelines & bind groups
         renderer.computePipeline = await renderer.createComputePipeline();
         renderer.renderPipeline = await renderer.createRenderPipeline();
         renderer.computeBindGroup = await renderer.createComputeBindGroup();
         renderer.renderBindGroup = await renderer.createRenderBindGroup();
+        console.log('🔍 Pipelines & bind groups created');
+
+        console.log('🔍 ASCIIRenderer initialized');
 
         return renderer;
     }
@@ -185,6 +191,7 @@ export class ASCIIRenderer implements UserSettings {
 
     // TODO remove 'any'
     private async loadAtlasBitmap(atlasType: string): Promise<any> {
+        console.log('🔍 Loading atlas bitmap');
         const cols = atlasInfo.numCols;
         const rows = atlasInfo.numRows;
         const cellW = atlasInfo.cellW;
@@ -197,6 +204,7 @@ export class ASCIIRenderer implements UserSettings {
     }
 
     private async createAtlasTexture(atlasType: string): Promise<GPUTexture> {
+        console.log('🔍 Creating atlas texture');
         const { bitmap, cols, rows, cellW, cellH } = await this.loadAtlasBitmap(atlasType);
         const atlasTex = this.device.createTexture({
             size: [bitmap.width, bitmap.height],
@@ -216,6 +224,7 @@ export class ASCIIRenderer implements UserSettings {
     }
 
     private async createCamTexture(): Promise<GPUTexture> {
+        console.log('🔍 Creating cam texture');
         async function waitForVideoMetadata(video: HTMLVideoElement) {
             if (video.readyState >= 1) {
                 // HAVE_METADATA or beyond
@@ -237,6 +246,7 @@ export class ASCIIRenderer implements UserSettings {
     }
 
     private async createUniforms(): Promise<GPUBuffer> {
+        console.log('🔍 Creating uniforms');
         const data = new Float32Array([
             this.outW,
             this.outH,
@@ -258,8 +268,8 @@ export class ASCIIRenderer implements UserSettings {
 
     private async loadShaders(): Promise<{ computeWGSL: string; renderWGSL: string; }> {
         const [computeWGSL, renderWGSL] = await Promise.all([
-            loadStaticText('/shaders/computeMask.wgsl'),
-            loadStaticText('/shaders/renderMask.wgsl')
+            loadStaticText('shaders/computeMask.wgsl'),
+            loadStaticText('shaders/renderMask.wgsl')
         ]);
         return { computeWGSL, renderWGSL };
     }

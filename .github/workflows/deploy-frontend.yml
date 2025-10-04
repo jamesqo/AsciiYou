@@ -20,28 +20,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup Node (from .nvmrc)
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-
-      - name: Enable Corepack and pin pnpm
-        run: |
-          corepack enable
-          corepack prepare pnpm@10.15.0 --activate
-          echo "Node:"; node -v; which node
-          echo "pnpm:"; pnpm -v; which pnpm
-          echo "Corepack:"; corepack --version; which corepack
-
-      - name: Install dependencies (workspace)
-        run: pnpm install --frozen-lockfile
-
-      - name: Build frontend
-        run: pnpm --filter ./frontend... build
-
-      - name: Ensure .nojekyll
-        run: touch frontend/dist/.nojekyll
+      
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

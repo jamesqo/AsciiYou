@@ -1,5 +1,6 @@
 import { appConfig } from '@/config/appConfig';
 import type { UserSettings } from '@/types';
+import { loadStaticBlob } from '@/util/fileUtils';
 
 const { atlasInfo, defaultSettings } = appConfig;
 const RAMP = atlasInfo.ramp;
@@ -190,9 +191,8 @@ export class ASCIIRenderer implements UserSettings {
         const cellH = atlasInfo.cellH;
         const path = atlasInfo.path;
 
-        const res = await fetch(path);
-        if (!res.ok) throw new Error(`Failed to load ${atlasType} atlas: ${res.status}`);
-        const bitmap = await createImageBitmap(await res.blob());
+        const blob = await loadStaticBlob(path);
+        const bitmap = await createImageBitmap(blob);
         return { bitmap, cols, rows, cellW, cellH };
     }
 
@@ -257,13 +257,11 @@ export class ASCIIRenderer implements UserSettings {
     }
 
     private async loadShaders(): Promise<{ computeWGSL: string; renderWGSL: string; }> {
-        const [computeResponse, renderResponse] = await Promise.all([
-            fetch('/shaders/computeMask.wgsl'),
-            fetch('/shaders/renderMask.wgsl')
+        const [computeWGSL, renderWGSL] = await Promise.all([
+            loadStaticText('/shaders/computeMask.wgsl'),
+            loadStaticText('/shaders/renderMask.wgsl')
         ]);
-        if (!computeResponse.ok) throw new Error(`Failed to load compute shader: ${computeResponse.status}`);
-        if (!renderResponse.ok) throw new Error(`Failed to load render shader: ${renderResponse.status}`);
-        return { computeWGSL: await computeResponse.text(), renderWGSL: await renderResponse.text() };
+        return { computeWGSL, renderWGSL };
     }
 
     private async verifyCompilation(module: GPUShaderModule): Promise<void> {

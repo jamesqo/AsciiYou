@@ -1,5 +1,6 @@
 import type { ASCIIRenderer } from "@/engine/ASCIIRenderer";
 import type { DebugTools } from '@/types'
+import { loadStaticText } from "./fileUtils";
 
 export function debugCanvas(): void {
     console.log("🔍 === CANVAS DEBUG ===");
@@ -194,8 +195,8 @@ export function testShaderCompilation(): void {
         
         // Test compute shader
         try {
-            const computeResponse = fetch('/shaders/computeMask.wgsl');
-            computeResponse.then(response => response.text()).then(code => {
+            const computeWGSL = loadStaticText('/shaders/computeMask.wgsl');
+            computeWGSL.then(code => {
                 try {
                     const module = device.createShaderModule({ code });
                     console.log("✅ Compute shader compiled successfully");
@@ -210,8 +211,8 @@ export function testShaderCompilation(): void {
         
         // Test render shader
         try {
-            const renderResponse = fetch('/shaders/renderMask.wgsl');
-            renderResponse.then(response => response.text()).then(code => {
+            const renderWGSL = loadStaticText('/shaders/renderMask.wgsl');
+            renderWGSL.then(code => {
                 try {
                     const module = device.createShaderModule({ code });
                     console.log("✅ Render shader compiled successfully");

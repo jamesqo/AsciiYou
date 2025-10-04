@@ -386,4 +386,9 @@ dist
 # End of https://www.toptal.com/developers/gitignore/api/node
 
 debug/
-assets/
+#assets/
+
+fonts/
+glyphs/
+# publish atlas so it can be used by gh pages
+!assets/*atlas*.png
